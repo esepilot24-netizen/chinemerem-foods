@@ -108,12 +108,34 @@ final class Chinemerem_Foods_Inventory {
      * Add resource hints for faster external resource loading
      */
     public function add_resource_hints() {
+        // Force desktop viewport width for mobile devices - auto-scales to fit screen
+        echo '<meta name="viewport" content="width=1200, initial-scale=0.333, maximum-scale=1, user-scalable=yes">' . "\n";
+        
         echo '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n";
         echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
         echo '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>' . "\n";
         echo '<link rel="dns-prefetch" href="https://fonts.googleapis.com">' . "\n";
         echo '<link rel="dns-prefetch" href="https://fonts.gstatic.com">' . "\n";
         echo '<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">' . "\n";
+        
+        // Auto-scale script for perfect fit on any screen width
+        echo '<script>
+        (function(){
+            function setScale() {
+                var w = window.innerWidth || document.documentElement.clientWidth;
+                if (w < 1200) {
+                    var scale = w / 1200;
+                    var vp = document.querySelector("meta[name=viewport]");
+                    if (vp) {
+                        vp.setAttribute("content", "width=1200, initial-scale=" + scale.toFixed(4) + ", maximum-scale=1, user-scalable=yes");
+                    }
+                }
+            }
+            setScale();
+            window.addEventListener("resize", setScale);
+            window.addEventListener("orientationchange", setScale);
+        })();
+        </script>' . "\n";
     }
     
     /**

@@ -78,9 +78,11 @@
     padding: 0;
 }
 
-/* DESKTOP VIEW ON MOBILE - Forces desktop layout, scales to fit screen */
+/* DESKTOP VIEW ON MOBILE - Forces desktop layout, auto-scales to fit screen */
 html {
+    width: 1200px !important;
     min-width: 1200px !important;
+    overflow-x: hidden !important;
 }
 
 body {
@@ -89,15 +91,29 @@ body {
     color: var(--cfi-dark);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    width: 1200px !important;
     min-width: 1200px !important;
+    transform-origin: top left;
+    overflow-x: hidden !important;
 }
 
-/* Mobile viewport scale - fits desktop view to screen */
+/* Mobile Auto-Scale - Desktop view fits to screen width automatically */
 @media screen and (max-width: 1200px) {
-    html {
-        zoom: calc(100vw / 1200) !important;
-        -moz-transform: scale(calc(100vw / 1200)) !important;
-        -moz-transform-origin: 0 0 !important;
+    html, body {
+        width: 1200px !important;
+        min-width: 1200px !important;
+    }
+    
+    body {
+        transform: scale(calc(100vw / 1200));
+        transform-origin: top left;
+    }
+    
+    /* Fallback for older browsers */
+    @supports not (transform: scale(1)) {
+        html {
+            zoom: 0.333;
+        }
     }
 }
 
