@@ -346,7 +346,7 @@ class CFI_Financial {
      */
     public static function end_of_day() {
         $today = current_time('Y-m-d');
-        $tomorrow = date('Y-m-d', strtotime($today . ' +1 day'));
+        $tomorrow = gmdate('Y-m-d', strtotime($today . ' +1 day'));
         
         // Get today's cash_left
         $summary = self::get_summary($today);
@@ -364,6 +364,14 @@ class CFI_Financial {
             array('%f'),
             array('%s')
         );
+    }
+    
+    /**
+     * Update daily summary - alias for recalculate
+     */
+    public static function update_daily_summary($date) {
+        self::initialize_date($date);
+        self::recalculate($date);
     }
     
     /**

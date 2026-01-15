@@ -230,7 +230,8 @@ class CFI_Debtors {
                 'debtor', 
                 $payment_data['transfer_amount'], 
                 $payment_data['bank_name'], 
-                get_current_user_id()
+                get_current_user_id(),
+                $debtor->name
             );
         }
         

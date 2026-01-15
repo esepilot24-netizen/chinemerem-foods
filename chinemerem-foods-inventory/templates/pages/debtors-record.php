@@ -204,19 +204,20 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
                 
                 // Record transfer if applicable
                 if ($transfer_amount > 0) {
-                    $transfer_table = $wpdb->prefix . 'cfi_transfers';
+                    $transfer_table = $wpdb->prefix . 'cfi_transfer_history';
                     $wpdb->insert(
                         $transfer_table,
                         array(
-                            'source_type' => 'debtor',
+                            'source' => 'debtor',
                             'source_id' => $debtor_id,
+                            'customer_name' => $debtor->name,
                             'amount' => $transfer_amount,
                             'bank_name' => $bank_name,
                             'staff_id' => get_current_user_id(),
                             'transfer_date' => current_time('Y-m-d'),
                             'transfer_time' => current_time('H:i:s')
                         ),
-                        array('%s', '%d', '%f', '%s', '%d', '%s', '%s')
+                        array('%s', '%d', '%s', '%f', '%s', '%d', '%s', '%s')
                     );
                 }
                 

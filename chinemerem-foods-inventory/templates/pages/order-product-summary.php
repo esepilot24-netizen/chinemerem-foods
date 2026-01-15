@@ -1,147 +1,214 @@
 <?php
 /**
- * Order Product Summary Page Template
+ * Order Product Summary Page Template - REBUILT WITH PHP DATA LOADING
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
-?>
-<main class="cfi-main">
-    <div class="cfi-container">
-        <div class="cfi-page-title">
-            <h1>
-                <i class="fas fa-chart-bar"></i>
-                <?php esc_html_e('Order Product Summary', 'chinemerem-foods'); ?>
-            </h1>
-            <div class="cfi-page-actions">
-                <?php $take_order = get_page_by_path('cfi-take-order'); ?>
-                <?php if ($take_order) : ?>
-                <a href="<?php echo esc_url(get_permalink($take_order->ID)); ?>" class="cfi-btn cfi-btn-primary cfi-btn-sm">
-                    <i class="fas fa-cart-plus"></i>
-                    <?php esc_html_e('Take Order', 'chinemerem-foods'); ?>
-                </a>
-                <?php endif; ?>
-            </div>
-        </div>
-        
-        <div class="cfi-filters cfi-glass">
-            <div class="cfi-filter-group">
-                <label for="cfi-summary-date"><?php esc_html_e('Date:', 'chinemerem-foods'); ?></label>
-                <input type="date" id="cfi-summary-date" class="cfi-input" value="<?php echo esc_attr(current_time('Y-m-d')); ?>">
-            </div>
-            <button type="button" id="cfi-load-summary" class="cfi-btn cfi-btn-primary cfi-btn-sm">
-                <i class="fas fa-sync"></i>
-                <?php esc_html_e('Load', 'chinemerem-foods'); ?>
-            </button>
-        </div>
-        
-        <div class="cfi-glass">
-            <h3>
-                <i class="fas fa-shopping-cart" style="color: var(--cfi-success);"></i>
-                <?php esc_html_e('Cash Orders Summary', 'chinemerem-foods'); ?>
-            </h3>
-            <p style="color: var(--cfi-gray);"><?php esc_html_e('Products ordered today via cash/transfer payments. Resets daily.', 'chinemerem-foods'); ?></p>
-            
-            <div class="cfi-table-wrapper">
-                <table id="cfi-summary-table" class="cfi-table cfi-table-responsive">
-                    <thead>
-                        <tr>
-                            <th><?php esc_html_e('Product', 'chinemerem-foods'); ?></th>
-                            <th><?php esc_html_e('Total Quantity', 'chinemerem-foods'); ?></th>
-                            <th><?php esc_html_e('Staff & Times', 'chinemerem-foods'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Populated by JavaScript -->
-                    </tbody>
-                    <tfoot id="cfi-summary-total">
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-        
-        <div class="cfi-glass" style="margin-top: 1.5rem;">
-            <h4><i class="fas fa-chart-pie"></i> <?php esc_html_e('Analytics', 'chinemerem-foods'); ?></h4>
-            <div id="cfi-analytics" class="cfi-cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-</main>
 
-<script>
-jQuery(document).ready(function($) {
-    function loadSummary() {
-        const date = $('#cfi-summary-date').val();
+// Get date
+$selected_date = isset($_GET['date']) ? sanitize_text_field($_GET['date']) : current_time('Y-m-d');
+
+// Get product summary
+$summary = CFI_Orders::get_product_summary($selected_date, 'cash');
+
+// Calculate total quantity
+$grand_total = 0;
+foreach ($summary as $item) {
+    $grand_total += floatval($item->total_quantity);
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; min-height: 100vh; }
         
-        CFI.ajax.request('get_order_product_summary', {
-            date: date,
-            type: 'cash'
-        }).then(function(data) {
-            const tbody = $('#cfi-summary-table tbody');
-            const tfoot = $('#cfi-summary-total');
-            const analytics = $('#cfi-analytics');
-            
-            tbody.empty();
-            tfoot.empty();
-            analytics.empty();
-            
-            if (!data.summary || data.summary.length === 0) {
-                tbody.append('<tr><td colspan="3" style="text-align: center;"><?php esc_html_e('No orders yet today', 'chinemerem-foods'); ?></td></tr>');
-                return;
-            }
-            
-            let grandTotal = 0;
-            
-            data.summary.forEach(function(item) {
-                grandTotal += parseFloat(item.total_quantity);
-                
-                tbody.append(`
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        
+        .page-header {
+            background: linear-gradient(135deg, #001943, #002960);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #001943; color: white; }
+        .btn-outline { background: white; border: 2px solid #001943; color: #001943; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        .glass {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,25,67,0.1);
+            border: 2px solid rgba(0,25,67,0.1);
+            margin-bottom: 1.5rem;
+        }
+        .glass h3 { color: #001943; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 1.5rem;
+        }
+        .filter-group label { display: block; font-weight: 600; color: #001943; font-size: 0.8rem; margin-bottom: 0.25rem; }
+        .filter-input {
+            padding: 0.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: #001943; color: white; padding: 0.75rem 0.5rem; text-align: left; }
+        td { padding: 0.6rem 0.5rem; border-bottom: 1px solid #e2e8f0; }
+        tr:hover { background: #f8fafc; }
+        .product-name { font-weight: 600; color: #001943; display: flex; align-items: center; gap: 0.5rem; }
+        .product-icon { 
+            width: 32px; 
+            height: 32px; 
+            background: linear-gradient(135deg, #001943, #002960); 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .product-icon i { color: white; font-size: 0.9rem; }
+        .qty-value { font-size: 1.25rem; font-weight: 700; color: #001943; }
+        
+        tfoot td { background: #001943; color: white; font-weight: 600; }
+        tfoot .total-qty { font-size: 1.5rem; font-weight: 800; }
+        
+        .empty { text-align: center; padding: 2rem; color: #64748b; }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .analytics-card {
+            background: linear-gradient(135deg, #001943, #002960);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .analytics-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .analytics-card .value { font-size: 2rem; font-weight: 800; }
+        .analytics-card .label { font-size: 0.8rem; opacity: 0.9; }
+        
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; text-align: center; }
+            .filters { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-chart-bar"></i> Order Product Summary</h1>
+        <a href="/take-order/" class="btn btn-outline" style="background: white;">
+            <i class="fas fa-cart-plus"></i> Take Order
+        </a>
+    </div>
+    
+    <div class="glass">
+        <form method="GET" class="filters">
+            <div class="filter-group">
+                <label>Select Date</label>
+                <input type="date" name="date" class="filter-input" value="<?php echo esc_attr($selected_date); ?>">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-sync"></i> Load Summary
+            </button>
+        </form>
+    </div>
+    
+    <div class="glass">
+        <h3><i class="fas fa-shopping-cart" style="color: #16a34a;"></i> Cash Orders Summary</h3>
+        <p style="color: #64748b; margin-bottom: 1rem;">Products ordered on <?php echo esc_html(gmdate('l, F j, Y', strtotime($selected_date))); ?> via cash/transfer payments.</p>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
                     <tr>
-                        <td data-label="<?php esc_attr_e('Product', 'chinemerem-foods'); ?>"><strong>${item.name}</strong></td>
-                        <td data-label="<?php esc_attr_e('Total Quantity', 'chinemerem-foods'); ?>">
-                            <span style="font-size: 1.25rem; font-weight: 700; color: var(--cfi-primary);">${CFI.utils.formatNumber(item.total_quantity)}</span>
-                        </td>
-                        <td data-label="<?php esc_attr_e('Staff & Times', 'chinemerem-foods'); ?>">${item.staff_info || '-'}</td>
+                        <th>Product</th>
+                        <th>Total Quantity</th>
+                        <th>Staff & Times</th>
                     </tr>
-                `);
-            });
-            
-            tfoot.append(`
-                <tr style="background: var(--cfi-primary); color: white;">
-                    <td><strong><?php esc_html_e('Grand Total', 'chinemerem-foods'); ?></strong></td>
-                    <td><strong style="font-size: 1.5rem;">${CFI.utils.formatNumber(grandTotal)}</strong></td>
-                    <td></td>
-                </tr>
-            `);
-            
-            // Analytics
-            analytics.append(`
-                <div class="cfi-card" style="text-align: center;">
-                    <div class="cfi-card-icon" style="background: var(--cfi-accent); width: 40px; height: 40px; margin: 0 auto;">
-                        <i class="fas fa-boxes" style="font-size: 1rem;"></i>
-                    </div>
-                    <p style="font-size: 2rem; font-weight: 700; color: var(--cfi-primary); margin: 0.5rem 0 0;">${data.summary.length}</p>
-                    <p style="font-size: 0.75rem; color: var(--cfi-gray); margin: 0;"><?php esc_html_e('Products', 'chinemerem-foods'); ?></p>
-                </div>
-                <div class="cfi-card" style="text-align: center;">
-                    <div class="cfi-card-icon" style="background: var(--cfi-success); width: 40px; height: 40px; margin: 0 auto;">
-                        <i class="fas fa-cubes" style="font-size: 1rem;"></i>
-                    </div>
-                    <p style="font-size: 2rem; font-weight: 700; color: var(--cfi-primary); margin: 0.5rem 0 0;">${CFI.utils.formatNumber(grandTotal)}</p>
-                    <p style="font-size: 0.75rem; color: var(--cfi-gray); margin: 0;"><?php esc_html_e('Total Units', 'chinemerem-foods'); ?></p>
-                </div>
-            `);
-        }).catch(function(error) {
-            CFI.toast.error(error);
-        });
-    }
-    
-    $('#cfi-load-summary, #cfi-summary-date').on('click change', function() {
-        loadSummary();
-    });
-    
-    loadSummary();
-});
-</script>
+                </thead>
+                <tbody>
+                    <?php if (empty($summary)) : ?>
+                    <tr><td colspan="3" class="empty">No orders found for this date</td></tr>
+                    <?php else : ?>
+                    <?php foreach ($summary as $item) : ?>
+                    <tr>
+                        <td class="product-name">
+                            <span class="product-icon"><i class="fas fa-box"></i></span>
+                            <?php echo esc_html($item->name); ?>
+                        </td>
+                        <td class="qty-value"><?php echo number_format($item->total_quantity, 1); ?></td>
+                        <td><?php echo esc_html($item->staff_info ?: '-'); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+                <?php if (!empty($summary)) : ?>
+                <tfoot>
+                    <tr>
+                        <td><strong>Grand Total</strong></td>
+                        <td class="total-qty"><?php echo number_format($grand_total, 1); ?></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                <?php endif; ?>
+            </table>
+        </div>
+        
+        <?php if (!empty($summary)) : ?>
+        <div class="analytics-grid">
+            <div class="analytics-card">
+                <div class="icon"><i class="fas fa-boxes"></i></div>
+                <div class="value"><?php echo count($summary); ?></div>
+                <div class="label">Products</div>
+            </div>
+            <div class="analytics-card">
+                <div class="icon"><i class="fas fa-cubes"></i></div>
+                <div class="value"><?php echo number_format($grand_total, 0); ?></div>
+                <div class="label">Total Units</div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+</body>
+</html>

@@ -352,7 +352,7 @@ $cash_left = floatval($summary->cash_left ?? 0);
             <i class="fas fa-calculator"></i>
             Financial Summary
         </h1>
-        <a href="<?php echo esc_url(home_url('/cfi-financial-history/')); ?>" class="cfi-history-btn">
+        <a href="<?php echo esc_url(home_url('/financial-history/')); ?>" class="cfi-history-btn">
             <i class="fas fa-history"></i>
             View History
         </a>

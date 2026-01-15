@@ -245,7 +245,7 @@ foreach ($expenses as $exp) {
                 <div class="expense-row">
                     <span class="row-number">1</span>
                     <input type="text" name="expenses[0][description]" placeholder="Enter expense description..." required>
-                    <input type="number" name="expenses[0][amount]" class="amount-input" placeholder="Amount (₦)" min="0" step="0.01" required>
+                    <input type="number" name="expenses[0][amount]" class="amount-input" placeholder="Amount (₦)" min="0" step="0.01" required oninput="calculateTotal()">
                     <button type="button" class="remove-btn" onclick="removeRow(this)" title="Remove">
                         <i class="fas fa-times"></i>
                     </button>
@@ -255,6 +255,12 @@ foreach ($expenses as $exp) {
             <button type="button" class="add-row-btn" onclick="addRow()">
                 <i class="fas fa-plus"></i> Add Another Expense
             </button>
+            
+            <!-- Real-time Total Display -->
+            <div id="expenses-total-display" style="background: linear-gradient(135deg, #001943, #002960); color: white; padding: 1rem; border-radius: 8px; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600;"><i class="fas fa-calculator"></i> Total Expenses:</span>
+                <span id="running-total" style="font-size: 1.5rem; font-weight: 700;">₦0</span>
+            </div>
             
             <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
                 <button type="reset" class="btn btn-outline">
@@ -316,9 +322,10 @@ function addRow() {
     newRow.className = 'expense-row';
     newRow.innerHTML = '<span class="row-number">' + rowCount + '</span>' +
         '<input type="text" name="expenses[' + (rowCount-1) + '][description]" placeholder="Enter expense description...">' +
-        '<input type="number" name="expenses[' + (rowCount-1) + '][amount]" class="amount-input" placeholder="Amount (₦)" min="0" step="0.01">' +
+        '<input type="number" name="expenses[' + (rowCount-1) + '][amount]" class="amount-input" placeholder="Amount (₦)" min="0" step="0.01" oninput="calculateTotal()">' +
         '<button type="button" class="remove-btn" onclick="removeRow(this)" title="Remove"><i class="fas fa-times"></i></button>';
     container.appendChild(newRow);
+    calculateTotal();
 }
 
 function removeRow(btn) {
@@ -329,8 +336,27 @@ function removeRow(btn) {
         document.querySelectorAll('.expense-row .row-number').forEach(function(el, idx) {
             el.textContent = idx + 1;
         });
+        calculateTotal();
     }
 }
+
+function calculateTotal() {
+    var inputs = document.querySelectorAll('.amount-input');
+    var total = 0;
+    inputs.forEach(function(input) {
+        var val = parseFloat(input.value) || 0;
+        total += val;
+    });
+    document.getElementById('running-total').textContent = '₦' + total.toLocaleString('en-NG', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+
+// Add event listeners to the first row
+document.addEventListener('DOMContentLoaded', function() {
+    var firstInput = document.querySelector('.expense-row .amount-input');
+    if (firstInput) {
+        firstInput.addEventListener('input', calculateTotal);
+    }
+});
 </script>
 </body>
 </html>

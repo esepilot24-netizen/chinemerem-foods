@@ -271,6 +271,7 @@ final class Chinemerem_Foods_Inventory {
 
     /**
      * Check authentication for plugin pages
+     * Force redirect non-logged users to login page
      */
     public function check_authentication() {
         global $post;
@@ -282,13 +283,24 @@ final class Chinemerem_Foods_Inventory {
         // List of CFI pages that require authentication
         $cfi_pages = CFI_Pages::get_page_slugs();
         
-        if (in_array($post->post_name, $cfi_pages) && $post->post_name !== 'cfi-login') {
-            if (!is_user_logged_in()) {
-                $login_page = get_page_by_path('cfi-login');
-                if ($login_page) {
-                    wp_redirect(get_permalink($login_page->ID));
-                    exit;
-                }
+        // Check if current page is a CFI page
+        $is_cfi_page = in_array($post->post_name, $cfi_pages) || 
+                       strpos($post->post_name, 'cfi-') === 0 ||
+                       has_shortcode($post->post_content, 'cfi_page') ||
+                       has_shortcode($post->post_content, 'cfi_login') ||
+                       has_shortcode($post->post_content, 'cfi_home');
+        
+        // If it's the login page, allow access
+        if ($post->post_name === 'cfi-login' || $post->post_name === 'login') {
+            return;
+        }
+        
+        // Force redirect non-logged users to login page
+        if ($is_cfi_page && !is_user_logged_in()) {
+            $login_page = get_page_by_path('cfi-login');
+            if ($login_page) {
+                wp_redirect(get_permalink($login_page->ID));
+                exit;
             }
         }
     }

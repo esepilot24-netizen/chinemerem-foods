@@ -97,13 +97,6 @@ $cards = array(
         'description' => 'View all transfer/card payment history',
     ),
     array(
-        'slug' => 'cash-out-history',
-        'title' => 'Cash Out History',
-        'icon' => 'fas fa-clock-rotate-left',
-        'unicode' => '&#xf1da;',
-        'description' => 'View cash out transfer history',
-    ),
-    array(
         'slug' => 'financial-summary',
         'title' => 'Financial Summary',
         'icon' => 'fas fa-calculator',
@@ -263,11 +256,16 @@ unset($card);
 <main class="cfi-main">
     <div class="cfi-container">
         <div class="cfi-page-title" style="margin-bottom: 2rem;">
-            <h1 style="color: #001943 !important; font-size: 2rem !important; display: flex; align-items: center; gap: 0.75rem;">
-                <i class="fas fa-house" style="color: #001943 !important;"></i>
-                Dashboard
-            </h1>
-            <span style="color: #64748b; font-size: 0.95rem;"><?php echo esc_html(current_time('l, F j, Y')); ?></span>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <img src="<?php echo esc_url(CFI_PLUGIN_URL . 'assets/images/logo.svg'); ?>" alt="Logo" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.style.display='none'">
+                <div>
+                    <h1 style="color: #001943 !important; font-size: 1.5rem !important; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-house" style="color: #001943 !important;"></i>
+                        Dashboard
+                    </h1>
+                    <span style="color: #64748b; font-size: 0.85rem;"><?php echo esc_html(current_time('l, F j, Y')); ?></span>
+                </div>
+            </div>
         </div>
         
         <div class="cfi-home-grid">

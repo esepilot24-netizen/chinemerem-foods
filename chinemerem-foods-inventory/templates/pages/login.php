@@ -1,6 +1,6 @@
 <?php
 /**
- * Login Page Template - REBUILT WITH RICE BAGS BACKGROUND
+ * Login Page Template - WITH IMAGE PLACEHOLDER BACKGROUND
  */
 
 if (!defined('ABSPATH')) {
@@ -15,6 +15,9 @@ if (is_user_logged_in()) {
         exit;
     }
 }
+
+// Get the logo URL
+$logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
 ?>
 <!DOCTYPE html>
 <html>
@@ -40,7 +43,7 @@ if (is_user_logged_in()) {
             overflow: hidden;
         }
         
-        /* Rice bags background pattern */
+        /* Image placeholder background - User can customize this */
         .login-wrapper::before {
             content: '';
             position: absolute;
@@ -48,15 +51,16 @@ if (is_user_logged_in()) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: 
-                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="rice" x1="0%25" y1="0%25" x2="100%25" y2="100%25"><stop offset="0%25" style="stop-color:%23f5f0e6"/><stop offset="100%25" style="stop-color:%23e8dcc8"/></linearGradient></defs><path d="M40 30c0-5 3-10 10-10h100c7 0 10 5 10 10v140c0 5-3 10-10 10H50c-7 0-10-5-10-10V30z" fill="url(%23rice)" stroke="%23d4c4a8" stroke-width="2"/><path d="M50 20v160" stroke="%23c4b498" stroke-width="1" fill="none"/><path d="M150 20v160" stroke="%23c4b498" stroke-width="1" fill="none"/><text x="100" y="90" text-anchor="middle" fill="%23001943" font-family="Arial" font-size="12" font-weight="bold">RICE</text><text x="100" y="110" text-anchor="middle" fill="%23555" font-family="Arial" font-size="8">50KG</text></svg>') repeat,
-                linear-gradient(135deg, #001943 0%, #002960 50%, #001943 100%);
-            background-size: 120px 140px, cover;
-            opacity: 0.15;
+            /* CUSTOMIZABLE: Replace this URL with your own image */
+            /* Example: background-image: url('your-image-url.jpg'); */
+            background: linear-gradient(135deg, #001943 0%, #002960 50%, #001943 100%);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             z-index: 0;
         }
         
-        /* Animated floating rice bags */
+        /* Dark overlay for better text readability */
         .login-wrapper::after {
             content: '';
             position: absolute;
@@ -64,27 +68,8 @@ if (is_user_logged_in()) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(0,25,67,0.95) 0%, rgba(0,41,96,0.9) 50%, rgba(0,25,67,0.95) 100%);
+            background: rgba(0, 25, 67, 0.85);
             z-index: 1;
-        }
-        
-        /* Decorative rice bags illustrations */
-        .rice-decor {
-            position: absolute;
-            z-index: 2;
-            opacity: 0.25;
-            animation: float 6s ease-in-out infinite;
-        }
-        .rice-decor.top-left { top: 5%; left: 5%; animation-delay: 0s; }
-        .rice-decor.top-right { top: 10%; right: 8%; animation-delay: 1s; }
-        .rice-decor.bottom-left { bottom: 8%; left: 10%; animation-delay: 2s; }
-        .rice-decor.bottom-right { bottom: 5%; right: 5%; animation-delay: 3s; }
-        .rice-decor.mid-left { top: 40%; left: 3%; animation-delay: 1.5s; }
-        .rice-decor.mid-right { top: 35%; right: 3%; animation-delay: 2.5s; }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(3deg); }
         }
         
         .login-box {
@@ -123,6 +108,13 @@ if (is_user_logged_in()) {
             justify-content: center;
             margin: 0 auto 1rem;
             box-shadow: 0 10px 30px rgba(0,25,67,0.3);
+            overflow: hidden;
+        }
+        
+        .login-logo .logo-icon img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
         }
         
         .login-logo .logo-icon i {
@@ -280,47 +272,57 @@ if (is_user_logged_in()) {
             text-decoration: underline;
         }
         
+        /* WhatsApp Button */
+        .whatsapp-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            width: 60px;
+            height: 60px;
+            background: #25D366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        .whatsapp-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(37, 211, 102, 0.5);
+        }
+        
+        .whatsapp-btn i {
+            font-size: 2rem;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(37, 211, 102, 0.6); }
+            100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+        }
+        
         /* Mobile optimization */
         @media (max-width: 480px) {
             .login-wrapper { padding: 1rem; }
             .login-box { padding: 2rem 1.5rem; border-radius: 20px; }
             .login-logo h1 { font-size: 1.5rem; }
-            .rice-decor { display: none; }
+            .whatsapp-btn { bottom: 20px; right: 20px; width: 55px; height: 55px; }
+            .whatsapp-btn i { font-size: 1.75rem; }
         }
     </style>
 </head>
 <body>
 <div class="login-wrapper">
-    <!-- Decorative rice bag illustrations -->
-    <svg class="rice-decor top-left" width="60" height="75" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    <svg class="rice-decor top-right" width="50" height="65" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    <svg class="rice-decor bottom-left" width="55" height="70" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    <svg class="rice-decor bottom-right" width="65" height="80" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    <svg class="rice-decor mid-left" width="45" height="58" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    <svg class="rice-decor mid-right" width="48" height="62" viewBox="0 0 60 75">
-        <path d="M10 8c0-3 2-6 6-6h28c4 0 6 3 6 6v59c0 3-2 6-6 6H16c-4 0-6-3-6-6V8z" fill="#f5f0e6" stroke="#d4c4a8" stroke-width="1.5"/>
-        <text x="30" y="40" text-anchor="middle" fill="#001943" font-family="Arial" font-size="8" font-weight="bold">RICE</text>
-    </svg>
-    
     <div class="login-box">
         <div class="login-logo">
             <div class="logo-icon">
-                <i class="fas fa-wheat-awn"></i>
+                <img src="<?php echo esc_url($logo_url); ?>" alt="Chinemerem Foods Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-wheat-awn\'></i>';">
             </div>
             <h1>Chinemerem Foods</h1>
             <p>Inventory Management System</p>
@@ -363,6 +365,11 @@ if (is_user_logged_in()) {
         </div>
     </div>
 </div>
+
+<!-- WhatsApp Button -->
+<a href="https://wa.me/2349019099708" target="_blank" rel="noopener" class="whatsapp-btn" title="Contact us on WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+</a>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

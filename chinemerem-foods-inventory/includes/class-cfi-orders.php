@@ -115,7 +115,7 @@ class CFI_Orders {
     /**
      * Record transfer payment
      */
-    public static function record_transfer($source_id, $source, $amount, $bank_name, $staff_id) {
+    public static function record_transfer($source_id, $source, $amount, $bank_name, $staff_id, $customer_name = '') {
         global $wpdb;
         $table = CFI_Database::get_table('transfer_history');
         
@@ -124,13 +124,14 @@ class CFI_Orders {
             array(
                 'source' => $source,
                 'source_id' => $source_id,
+                'customer_name' => $customer_name,
                 'amount' => $amount,
                 'bank_name' => $bank_name,
                 'transfer_date' => current_time('Y-m-d'),
                 'transfer_time' => current_time('H:i:s'),
                 'staff_id' => $staff_id,
             ),
-            array('%s', '%d', '%f', '%s', '%s', '%s', '%d')
+            array('%s', '%d', '%s', '%f', '%s', '%s', '%s', '%d')
         );
     }
     
