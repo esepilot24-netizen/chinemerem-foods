@@ -1,6 +1,8 @@
 <?php
 /**
- * Login Page Template - WITH IMAGE PLACEHOLDER BACKGROUND
+ * Login Page Template - ELEMENTOR COMPATIBLE
+ * This template outputs content only (no <html>, <head>, <body> tags)
+ * Works with WordPress themes and Elementor page builder
  */
 
 if (!defined('ABSPATH')) {
@@ -19,13 +21,7 @@ if (is_user_logged_in()) {
 // Get the logo URL
 $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+<style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body, html {
@@ -328,8 +324,7 @@ $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
             .whatsapp-btn i { font-size: 1.75rem; }
         }
     </style>
-</head>
-<body>
+
 <div class="login-wrapper">
     <div class="login-box">
         <div class="login-logo">
@@ -404,5 +399,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-</body>
-</html>
