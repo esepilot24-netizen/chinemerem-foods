@@ -63,7 +63,7 @@ class CFI_Shortcodes {
         // Render footer (except for login page)
         if ($atts['template'] !== 'login') {
             $this->render_footer();
-            // Mobile nav removed per user request - desktop view fits mobile screen naturally
+            $this->render_mobile_nav();
             $this->render_scroll_to_top();
         }
         
@@ -155,20 +155,20 @@ class CFI_Shortcodes {
      * Render mobile navigation with sleek bottom bar
      */
     private function render_mobile_nav() {
-        // Get page URLs using WordPress functions
-        $home_page = get_page_by_path('cfi-home');
-        $order_page = get_page_by_path('cfi-take-order');
-        $stock_page = get_page_by_path('cfi-stock-record');
-        $history_page = get_page_by_path('cfi-transfer-history');
-        $profile_page = get_page_by_path('cfi-profile');
+        // Get page URLs using WordPress functions - use non-cfi format as user specified
+        $home_page = get_page_by_path('home');
+        $order_page = get_page_by_path('take-order');
+        $stock_page = get_page_by_path('stock-record');
+        $history_page = get_page_by_path('transfer-history');
+        $profile_page = get_page_by_path('profile');
         
-        // Build mobile nav items with proper page URLs
+        // Build mobile nav items with proper page URLs (fallback to /page/ format without cfi-)
         $mobile_nav = array(
-            array('url' => $home_page ? get_permalink($home_page->ID) : home_url('/cfi-home/'), 'icon' => 'fa-home', 'label' => 'Home'),
-            array('url' => $order_page ? get_permalink($order_page->ID) : home_url('/cfi-take-order/'), 'icon' => 'fa-cart-plus', 'label' => 'Order'),
-            array('url' => $stock_page ? get_permalink($stock_page->ID) : home_url('/cfi-stock-record/'), 'icon' => 'fa-boxes', 'label' => 'Stock'),
-            array('url' => $history_page ? get_permalink($history_page->ID) : home_url('/cfi-transfer-history/'), 'icon' => 'fa-exchange-alt', 'label' => 'History'),
-            array('url' => $profile_page ? get_permalink($profile_page->ID) : home_url('/cfi-profile/'), 'icon' => 'fa-user-circle', 'label' => 'Profile'),
+            array('url' => $home_page ? get_permalink($home_page->ID) : home_url('/home/'), 'icon' => 'fa-home', 'label' => 'Home'),
+            array('url' => $order_page ? get_permalink($order_page->ID) : home_url('/take-order/'), 'icon' => 'fa-cart-plus', 'label' => 'Order'),
+            array('url' => $stock_page ? get_permalink($stock_page->ID) : home_url('/stock-record/'), 'icon' => 'fa-boxes', 'label' => 'Stock'),
+            array('url' => $history_page ? get_permalink($history_page->ID) : home_url('/transfer-history/'), 'icon' => 'fa-exchange-alt', 'label' => 'History'),
+            array('url' => $profile_page ? get_permalink($profile_page->ID) : home_url('/profile/'), 'icon' => 'fa-user-circle', 'label' => 'Profile'),
         );
         ?>
         <nav class="cfi-mobile-nav" id="cfi-mobile-nav">
