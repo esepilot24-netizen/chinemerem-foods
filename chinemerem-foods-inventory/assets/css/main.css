@@ -79,9 +79,9 @@
     padding: 0;
 }
 
-/* FORCE DESKTOP VIEW ON MOBILE - Shows all content like desktop site */
+/* RESPONSIVE VIEW - Site fits mobile screen naturally without horizontal scrolling */
 html {
-    min-width: 1024px !important;
+    width: 100% !important;
 }
 
 body {
@@ -90,7 +90,7 @@ body {
     color: var(--cfi-dark);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    min-width: 1024px !important;
+    width: 100% !important;
 }
 
 /* Global Font Awesome Fix - Force icons to display */

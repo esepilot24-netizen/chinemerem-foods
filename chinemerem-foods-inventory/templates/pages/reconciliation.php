@@ -145,6 +145,9 @@ $today = current_time('Y-m-d');
             padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
         .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }

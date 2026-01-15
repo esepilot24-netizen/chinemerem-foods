@@ -221,8 +221,9 @@ foreach ($records as $r) {
 <div class="container">
     <div class="page-header">
         <h1><i class="fas fa-box-open"></i> Packing Store</h1>
-        <a href="/packing-history/" class="btn btn-outline" style="background: white;">
-            <i class="fas fa-history"></i> View History
+        <?php $packing_history = get_page_by_path('cfi-packing-history'); ?>
+        <a href="<?php echo $packing_history ? esc_url(get_permalink($packing_history->ID)) : home_url('/cfi-packing-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
+            <i class="fas fa-history" style="color: #001943 !important;"></i> View History
         </a>
     </div>
     

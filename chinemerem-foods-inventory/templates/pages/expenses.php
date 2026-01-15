@@ -226,8 +226,9 @@ foreach ($expenses as $exp) {
 <div class="container">
     <div class="page-header">
         <h1><i class="fas fa-file-invoice-dollar"></i> Expenses Record</h1>
-        <a href="/expenses-history/" class="btn btn-outline" style="background: white;">
-            <i class="fas fa-history"></i> View History
+        <?php $expenses_history = get_page_by_path('cfi-expenses-history'); ?>
+        <a href="<?php echo $expenses_history ? esc_url(get_permalink($expenses_history->ID)) : home_url('/cfi-expenses-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
+            <i class="fas fa-history" style="color: #001943 !important;"></i> View History
         </a>
     </div>
     

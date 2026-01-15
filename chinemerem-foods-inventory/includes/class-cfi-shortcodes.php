@@ -63,7 +63,7 @@ class CFI_Shortcodes {
         // Render footer (except for login page)
         if ($atts['template'] !== 'login') {
             $this->render_footer();
-            $this->render_mobile_nav();
+            // Mobile nav removed per user request - desktop view fits mobile screen naturally
             $this->render_scroll_to_top();
         }
         
