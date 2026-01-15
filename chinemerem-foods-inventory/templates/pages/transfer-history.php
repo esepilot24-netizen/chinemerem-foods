@@ -103,8 +103,8 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white;
-            padding: 1.5rem;
+            color: #ffffff !important;
+            padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
             display: flex;
@@ -113,19 +113,20 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
             flex-wrap: wrap;
             gap: 1rem;
         }
-        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
         
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
+            gap: 0.4rem;
+            padding: 0.5rem 0.75rem;
             border: none;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
         .btn-primary { background: #001943; color: white; }

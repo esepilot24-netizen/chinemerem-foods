@@ -45,11 +45,12 @@ $cash_left = floatval($summary->cash_left ?? 0);
 
 .cfi-financial-title h1 {
     color: #001943 !important;
-    font-size: 1.25rem !important;
+    font-size: 0.75rem !important;
     margin: 0 !important;
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
+    font-weight: 600 !important;
 }
 
 .cfi-financial-title h1 i {

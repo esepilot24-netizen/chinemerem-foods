@@ -325,6 +325,13 @@ $today = current_time('Y-m-d');
 <div class="container">
     <div class="page-header">
         <h1><i class="fas fa-calendar-check"></i> Reconciliation Calendar</h1>
+        <?php 
+        $history_page = get_page_by_path('reconciliation-history');
+        $history_url = $history_page ? get_permalink($history_page) : home_url('/reconciliation-history/');
+        ?>
+        <a href="<?php echo esc_url($history_url); ?>" class="btn" style="background: #ffffff !important; color: #001943 !important; font-weight: 700 !important; box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;">
+            <i class="fas fa-history" style="color: #001943 !important;"></i> View History
+        </a>
     </div>
     
     <?php if ($message) : ?>

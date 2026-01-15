@@ -79,9 +79,9 @@
     padding: 0;
 }
 
-/* RESPONSIVE VIEW - Site fits mobile screen naturally without horizontal scrolling */
+/* DESKTOP VIEW ON MOBILE - Forces desktop layout, scales to fit screen */
 html {
-    width: 100% !important;
+    min-width: 1200px !important;
 }
 
 body {
@@ -90,7 +90,16 @@ body {
     color: var(--cfi-dark);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    width: 100% !important;
+    min-width: 1200px !important;
+}
+
+/* Mobile viewport scale - fits desktop view to screen */
+@media screen and (max-width: 1200px) {
+    html {
+        zoom: calc(100vw / 1200) !important;
+        -moz-transform: scale(calc(100vw / 1200)) !important;
+        -moz-transform-origin: 0 0 !important;
+    }
 }
 
 /* Global Font Awesome Fix - Force icons to display */
