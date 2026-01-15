@@ -155,7 +155,7 @@ unset($card);
     width: 56px !important;
     height: 56px !important;
     background: #001943 !important;
-    color: white !important;
+    color: #ffffff !important;
     border-radius: 12px !important;
     display: flex !important;
     align-items: center !important;
@@ -169,7 +169,7 @@ unset($card);
 .cfi-home-card-icon .fa,
 .cfi-home-card-icon .fas,
 .cfi-home-card-icon [class*="fa-"] {
-    color: white !important;
+    color: #ffffff !important;
     font-size: 1.5rem !important;
     display: inline-block !important;
     font-family: 'Font Awesome 6 Free', 'FontAwesome', sans-serif !important;
@@ -184,7 +184,7 @@ unset($card);
     margin-bottom: 0.5rem !important;
 }
 .cfi-home-card-desc {
-    font-size: 0.9rem !important;
+    font-size: 0.75rem !important;
     color: #64748b !important;
     margin-bottom: 1rem !important;
     line-height: 1.5 !important;
@@ -192,7 +192,7 @@ unset($card);
 }
 .cfi-home-card-btn {
     background: #001943 !important;
-    color: white !important;
+    color: #ffffff !important;
     padding: 0.6rem 1rem !important;
     border-radius: 8px !important;
     font-size: 0.85rem !important;
@@ -211,7 +211,7 @@ unset($card);
 .cfi-home-card-btn i,
 .cfi-home-card-btn .fa,
 .cfi-home-card-btn .fas {
-    color: white !important;
+    color: #ffffff !important;
     font-family: 'Font Awesome 6 Free', 'FontAwesome', sans-serif !important;
     font-weight: 900 !important;
 }
@@ -237,7 +237,7 @@ unset($card);
     align-items: center !important;
     gap: 0.5rem !important;
     background: #001943 !important;
-    color: white !important;
+    color: #ffffff !important;
     padding: 0.5rem 1rem !important;
     border-radius: 8px !important;
     text-decoration: none !important;
@@ -246,10 +246,10 @@ unset($card);
 }
 .cfi-admin-btn:hover {
     background: #002a66 !important;
-    color: white !important;
+    color: #ffffff !important;
 }
 .cfi-admin-btn i {
-    color: white !important;
+    color: #ffffff !important;
 }
 </style>
 

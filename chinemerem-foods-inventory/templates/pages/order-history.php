@@ -57,16 +57,17 @@ $orders = $wpdb->get_results($wpdb->prepare(
         body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
         .page-header { background: linear-gradient(135deg, #001943, #002960); color: white !important; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
-        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
+        .page-header a, .page-header span { color: #ffffff !important; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.65rem; transition: all 0.3s; }
         .btn-primary { background: #001943; color: white; }
         .btn-outline { background: white; border: 2px solid #001943; color: #001943; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .glass { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,25,67,0.1); border: 2px solid rgba(0,25,67,0.1); margin-bottom: 1.5rem; }
         .filters { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem; }
         .filter-group label { display: block; font-weight: 600; color: #001943; font-size: 0.8rem; margin-bottom: 0.25rem; }
-        .filter-input { padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; }
+        .filter-input { padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.75rem; }
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 800px; }
         th { background: #001943; color: white; padding: 0.6rem 0.4rem; text-align: left; white-space: nowrap; font-size: 0.75rem; }

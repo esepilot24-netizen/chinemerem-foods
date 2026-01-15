@@ -146,7 +146,7 @@ $bg_style = $login_bg_image
     
     .cfi-login-logo p {
         color: #64748b;
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         margin: 0;
         font-weight: 400;
     }

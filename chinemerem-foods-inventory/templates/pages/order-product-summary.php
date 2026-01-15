@@ -32,7 +32,7 @@ foreach ($summary as $item) {
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white !important;
+            color: #ffffff !important;
             padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
@@ -42,8 +42,8 @@ foreach ($summary as $item) {
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
         
         .btn {
             display: inline-flex;
@@ -55,7 +55,7 @@ foreach ($summary as $item) {
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
         .btn-primary { background: #001943; color: white; }
@@ -84,7 +84,7 @@ foreach ($summary as $item) {
             padding: 0.5rem;
             border: 2px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
         
         .table-wrapper { overflow-x: auto; }
@@ -102,7 +102,7 @@ foreach ($summary as $item) {
             align-items: center; 
             justify-content: center; 
         }
-        .product-icon i { color: white; font-size: 0.9rem; }
+        .product-icon i { color: white; font-size: 0.75rem; }
         .qty-value { font-size: 1.25rem; font-weight: 700; color: #001943; }
         
         tfoot td { background: #001943; color: white; font-weight: 600; }

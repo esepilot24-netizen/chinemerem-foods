@@ -247,15 +247,18 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
     <style>
         .cfi-debtors-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
         .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-        .cfi-page-header h1 { margin: 0; font-size: 0.875rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: white !important; }
-        .cfi-page-header h1 i { color: white !important; font-size: 0.875rem; }
-        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
+        .cfi-page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: #ffffff !important; }
+        .cfi-page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
+        .cfi-page-header a, .cfi-page-header span { color: #ffffff !important; }
+        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.65rem; transition: all 0.3s; }
         .cfi-btn-primary { background: #001943; color: white; }
         .cfi-btn-success { background: #16a34a; color: white; }
         .cfi-btn-danger { background: #dc2626; color: white; }
         .cfi-btn-outline { background: transparent; border: 2px solid #001943; color: #001943; }
-        /* View History button - white background with dark text for visibility */
-        .cfi-btn-history { background: #ffffff !important; color: #001943 !important; border: 2px solid #ffffff; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        /* View History button - high contrast white background */
+        .cfi-btn-history { background: #ffffff !important; color: #001943 !important; border: 2px solid #ffffff !important; font-weight: 700 !important; box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important; font-size: 0.65rem !important; }
+        .cfi-btn-history i { color: #001943 !important; }
+        .cfi-btn-history:hover { background: #f0f4f8 !important; }
         .cfi-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,25,67,0.3); }
         .cfi-alert { padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
         .cfi-alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
@@ -363,10 +366,10 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
                             </td>
                             <td style="color: #001943; font-weight: 600;"><?php echo number_format($product->price, 2); ?></td>
                             <td>
-                                <input type="number" name="order_items[<?php echo $index; ?>][quantity]" class="qty-input" value="0" min="0" step="0.5" onchange="calculateRowTotal(this)">
+                                <input type="number" name="order_items[<?php echo $index; ?>][quantity]" class="qty-input" value="0" min="0" step="0.5" oninput="calculateRowTotal(this)">
                             </td>
                             <td>
-                                <input type="number" name="order_items[<?php echo $index; ?>][discount]" class="disc-input" value="0" min="0" step="0.01" onchange="calculateRowTotal(this)">
+                                <input type="number" name="order_items[<?php echo $index; ?>][discount]" class="disc-input" value="0" min="0" step="0.01" oninput="calculateRowTotal(this)">
                             </td>
                             <td class="row-total" style="font-weight: 600; color: #001943;">0.00</td>
                         </tr>

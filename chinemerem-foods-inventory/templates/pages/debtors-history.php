@@ -60,29 +60,29 @@ $debtors = CFI_Debtors::get_all();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .cfi-history-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white !important; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-        .cfi-page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .cfi-page-header h1 i { color: white !important; font-size: 0.9rem; }
-        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
+        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: #ffffff !important; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .cfi-page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .cfi-page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
+        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.65rem; transition: all 0.3s; }
         .cfi-btn-primary { background: #001943; color: white; }
         .cfi-btn-outline { background: white; border: 2px solid #001943; color: #001943; }
         .cfi-glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,25,67,0.1); border: 2px solid rgba(0,25,67,0.1); margin-bottom: 1.5rem; }
         .cfi-filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem; }
         .cfi-filter-group { flex: 1; min-width: 150px; }
         .cfi-filter-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001943; font-size: 0.85rem; }
-        .cfi-select { width: 100%; padding: 0.6rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; }
+        .cfi-select { width: 100%; padding: 0.6rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; }
         .cfi-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .cfi-table th { background: #001943; color: white; padding: 0.6rem 0.4rem; text-align: left; font-size: 0.75rem; }
         .cfi-table td { padding: 0.5rem 0.4rem; border-bottom: 1px solid #e2e8f0; }
         .cfi-table tr:hover { background: rgba(0,25,67,0.02); }
-        .cfi-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .cfi-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
         .cfi-badge-order { background: #fee2e2; color: #991b1b; }
         .cfi-badge-payment { background: #dcfce7; color: #166534; }
         .cfi-badge-initial { background: #dbeafe; color: #1e40af; }
         .cfi-badge-adjustment { background: #fef3c7; color: #92400e; }
         .cfi-empty { text-align: center; padding: 3rem; color: #64748b; }
         .cfi-empty i { font-size: 3rem; margin-bottom: 1rem; display: block; }
-        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.65rem; }
         .btn-delete { background: #dc2626; color: white; }
         .btn-delete:hover { background: #b91c1c; }
         .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }

@@ -141,13 +141,13 @@ $today = current_time('Y-m-d');
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white !important;
+            color: #ffffff !important;
             padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
         
         .btn {
             display: inline-flex;
@@ -159,7 +159,7 @@ $today = current_time('Y-m-d');
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
         .btn-primary { background: #001943; color: white; }
@@ -306,7 +306,7 @@ $today = current_time('Y-m-d');
             display: inline-block;
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
         }
         .status-badge.completed { background: #dcfce7; color: #166534; }

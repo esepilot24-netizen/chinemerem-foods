@@ -46,7 +46,7 @@ $history = CFI_Financial::get_history($start_date, $end_date);
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white !important;
+            color: #ffffff !important;
             padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
@@ -56,8 +56,8 @@ $history = CFI_Financial::get_history($start_date, $end_date);
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
         
         .btn {
             display: inline-flex;
@@ -98,21 +98,21 @@ $history = CFI_Financial::get_history($start_date, $end_date);
             padding: 0.5rem;
             border: 2px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
         
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 900px; }
-        th { background: #001943; color: white; padding: 0.6rem 0.4rem; text-align: left; white-space: nowrap; font-size: 0.7rem; }
+        th { background: #001943; color: white; padding: 0.6rem 0.4rem; text-align: left; white-space: nowrap; font-size: 0.65rem; }
         td { padding: 0.5rem 0.4rem; border-bottom: 1px solid #e2e8f0; }
         tr:hover { background: #f8fafc; }
         
         .positive { color: #16a34a !important; }
         .negative { color: #dc2626 !important; }
-        .highlight { font-weight: 700; color: #16a34a; font-size: 0.9rem; }
+        .highlight { font-weight: 700; color: #16a34a; font-size: 0.75rem; }
         .date-col { font-weight: 600; color: #001943; }
         
-        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.65rem; }
         .btn-delete { background: #dc2626; color: white; }
         .btn-delete:hover { background: #b91c1c; }
         .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }

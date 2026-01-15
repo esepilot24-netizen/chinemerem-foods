@@ -187,8 +187,9 @@ $products = CFI_Products::get_all();
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
+        .page-header a, .page-header span { color: #ffffff !important; }
         .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         
         .btn {
@@ -469,10 +470,10 @@ $products = CFI_Products::get_all();
                             </td>
                             <td class="price"><?php echo number_format($product->price, 0); ?></td>
                             <td>
-                                <input type="number" name="items[<?php echo $idx; ?>][quantity]" class="qty-input" value="0" min="0" step="0.5" onchange="calculateRow(this)">
+                                <input type="number" name="items[<?php echo $idx; ?>][quantity]" class="qty-input" value="0" min="0" step="0.5" oninput="calculateRow(this)">
                             </td>
                             <td>
-                                <input type="number" name="items[<?php echo $idx; ?>][discount]" class="disc-input" value="0" min="0" step="1" onchange="calculateRow(this)">
+                                <input type="number" name="items[<?php echo $idx; ?>][discount]" class="disc-input" value="0" min="0" step="1" oninput="calculateRow(this)">
                             </td>
                             <td class="row-total">0</td>
                         </tr>

@@ -98,8 +98,9 @@ foreach ($expenses as $exp) {
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
-        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
+        .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
+        .page-header a, .page-header span { color: #ffffff !important; }
         
         .btn {
             display: inline-flex;
@@ -111,7 +112,7 @@ foreach ($expenses as $exp) {
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
         .btn-primary { background: #001943; color: white; }
@@ -172,7 +173,7 @@ foreach ($expenses as $exp) {
             padding: 0.6rem;
             border: 2px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
         .expense-row input:focus { outline: none; border-color: #001943; }
         .expense-row .amount-input { max-width: 150px; }
