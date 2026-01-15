@@ -610,12 +610,86 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
 </div>
 <script>
 function printReceipt() {
-    var printContents = document.getElementById('receipt-print-area').innerHTML;
-    var originalContents = document.body.innerHTML;
-    document.body.innerHTML = '<div style="width: 80mm; margin: 0 auto; font-family: Arial, sans-serif; font-size: 12px;">' + printContents + '</div>';
-    window.print();
-    document.body.innerHTML = originalContents;
-    location.reload();
+    // Generate text-format receipt for 80mm mobile printers
+    var lineWidth = 32;
+    var lines = [];
+    
+    function centerText(text) {
+        var padding = Math.floor((lineWidth - text.length) / 2);
+        return ' '.repeat(Math.max(0, padding)) + text;
+    }
+    
+    function leftRight(left, right) {
+        var space = lineWidth - left.length - right.length;
+        return left + ' '.repeat(Math.max(1, space)) + right;
+    }
+    
+    function separator(char) {
+        return char.repeat(lineWidth);
+    }
+    
+    // Company Header
+    lines.push(centerText('CHINEMEREM FOODS'));
+    lines.push(centerText('Credit Order Receipt'));
+    lines.push(separator('='));
+    
+    // Order Info
+    <?php if ($receipt_data) : ?>
+    lines.push(leftRight('Order #:', '<?php echo esc_js($receipt_data['order_number']); ?>'));
+    lines.push(leftRight('Date:', '<?php echo esc_js($receipt_data['date']); ?>'));
+    lines.push(leftRight('Time:', '<?php echo esc_js($receipt_data['time']); ?>'));
+    lines.push(leftRight('Debtor:', '<?php echo esc_js($receipt_data['debtor_name']); ?>'));
+    lines.push(leftRight('Staff:', '<?php echo esc_js($receipt_data['staff']); ?>'));
+    lines.push(separator('-'));
+    
+    // Items Header
+    lines.push('ITEM             QTY    AMOUNT');
+    lines.push(separator('-'));
+    
+    // Items
+    <?php foreach ($receipt_data['items'] as $item) : ?>
+    var itemName = '<?php echo esc_js(substr($item['product_name'], 0, 14)); ?>';
+    var qty = '<?php echo esc_js($item['quantity']); ?>';
+    var amount = '<?php echo number_format($item['total'], 0); ?>';
+    lines.push(itemName.padEnd(17) + qty.padStart(4) + amount.padStart(11));
+    <?php endforeach; ?>
+    
+    lines.push(separator('-'));
+    
+    // Totals
+    lines.push(separator('='));
+    lines.push(leftRight('ORDER TOTAL:', 'N<?php echo number_format($receipt_data['total'], 0); ?>'));
+    lines.push(separator('='));
+    lines.push(leftRight('NEW BALANCE:', 'N<?php echo number_format($receipt_data['new_balance'], 0); ?>'));
+    <?php endif; ?>
+    
+    lines.push('');
+    lines.push(separator('-'));
+    lines.push(centerText('This is a credit order'));
+    lines.push(centerText('Payment pending'));
+    lines.push(separator('-'));
+    lines.push(centerText('Powered by'));
+    lines.push(centerText('BendlessTech'));
+    lines.push('');
+    
+    var receiptText = lines.join('\n');
+    
+    // Create print window
+    var printWindow = window.open('', '', 'width=300,height=600');
+    printWindow.document.write('<html><head><title>Receipt</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
+    printWindow.document.write('pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; }');
+    printWindow.document.write('@media print { body { width: 72mm; margin: 0; padding: 1mm; } }');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write('<pre>' + receiptText + '</pre>');
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(function() {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
 }
 function closeReceipt() {
     document.getElementById('receipt-modal').style.display = 'none';
