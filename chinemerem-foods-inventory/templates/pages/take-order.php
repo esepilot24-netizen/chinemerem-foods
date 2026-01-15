@@ -1,6 +1,6 @@
 <?php
 /**
- * Take Order Page Template - REBUILT WITH RECEIPT PRINTING & CUSTOMER NAME
+ * Take Order Page Template - REBUILT WITH CONFIRMATION POPUP & FIXED RECEIPT MODAL
  * Uses direct form POST for reliability
  */
 
@@ -65,7 +65,7 @@ if (isset($_POST['cfi_submit_order']) && wp_verify_nonce($_POST['cfi_order_nonce
             $message_type = 'error';
         } else {
             $grand_total = $total_amount - $total_discount;
-            $order_number = 'ORD-' . date('Ymd') . '-' . substr(uniqid(), -6);
+            $order_number = 'ORD-' . gmdate('Ymd') . '-' . substr(uniqid(), -6);
             
             // Insert order
             $orders_table = $wpdb->prefix . 'cfi_orders';
@@ -362,6 +362,49 @@ $products = CFI_Products::get_all();
         .receipt-actions { display: flex; gap: 0.5rem; padding: 1rem; background: #f1f5f9; }
         .receipt-actions .btn { flex: 1; justify-content: center; }
         
+        /* Confirmation Modal */
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .confirm-modal.active { display: flex; }
+        .confirm-content {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .confirm-header {
+            background: #001943;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .confirm-header h3 { margin: 0; }
+        .confirm-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .confirm-body { padding: 1.5rem; }
+        .confirm-items { margin: 1rem 0; }
+        .confirm-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .confirm-totals { background: #001943; color: white; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+        .confirm-totals p { display: flex; justify-content: space-between; margin: 0.25rem 0; }
+        .confirm-totals .grand { font-size: 1.25rem; font-weight: 700; color: #4ade80; }
+        .confirm-actions { display: flex; gap: 0.5rem; }
+        .confirm-actions .btn { flex: 1; justify-content: center; }
+        
         @media print {
             body * { visibility: hidden; }
             .receipt-body, .receipt-body * { visibility: visible; }
@@ -504,11 +547,42 @@ $products = CFI_Products::get_all();
                 <span>I confirm that payment has been received</span>
             </div>
             
-            <button type="submit" name="cfi_submit_order" class="btn btn-success btn-lg" style="width: 100%;">
-                <i class="fas fa-check-circle"></i> Submit Order
+            <button type="button" onclick="showConfirmation()" class="btn btn-success btn-lg" style="width: 100%;">
+                <i class="fas fa-check-circle"></i> Review & Submit Order
             </button>
         </div>
     </form>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="confirm-modal" id="confirm-modal">
+    <div class="confirm-content">
+        <div class="confirm-header">
+            <h3><i class="fas fa-clipboard-check"></i> Review Order</h3>
+            <button type="button" class="confirm-close" onclick="hideConfirmation()">&times;</button>
+        </div>
+        <div class="confirm-body">
+            <h4 style="color: #001943; margin-bottom: 1rem;">Order Items</h4>
+            <div class="confirm-items" id="confirm-items-list">
+                <!-- Populated by JavaScript -->
+            </div>
+            
+            <div class="confirm-totals" id="confirm-totals">
+                <!-- Populated by JavaScript -->
+            </div>
+            
+            <p id="confirm-payment-info" style="text-align: center; font-weight: 600; color: #001943; margin: 1rem 0;"></p>
+            
+            <div class="confirm-actions">
+                <button type="button" onclick="hideConfirmation()" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Edit Order
+                </button>
+                <button type="button" onclick="submitOrder()" class="btn btn-success">
+                    <i class="fas fa-check"></i> Confirm & Submit
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php if ($receipt_data) : ?>
@@ -641,26 +715,117 @@ function selectPayment(el) {
     calculateTotals();
 }
 
+// Show confirmation modal
+function showConfirmation() {
+    var confirmCheckbox = document.getElementById('confirm-payment');
+    if (!confirmCheckbox.checked) {
+        alert('Please confirm that payment has been received!');
+        confirmCheckbox.focus();
+        return;
+    }
+    
+    var method = document.getElementById('payment-method').value;
+    var customerName = document.getElementById('customer_name').value.trim();
+    
+    if (method === 'transfer' && !customerName) {
+        alert('Customer name is required for transfer/card payments!');
+        document.getElementById('customer_name').classList.add('required');
+        document.getElementById('customer_name').focus();
+        return;
+    }
+    
+    // Build items list for confirmation
+    var rows = document.querySelectorAll('.order-row');
+    var itemsHtml = '';
+    var hasItems = false;
+    var totalQty = 0;
+    var subtotal = 0;
+    var totalDisc = 0;
+    
+    rows.forEach(function(row) {
+        var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        var disc = parseFloat(row.querySelector('.disc-input').value) || 0;
+        var price = parseFloat(row.dataset.price) || 0;
+        var name = row.querySelector('.product-name').textContent.trim();
+        
+        if (qty > 0) {
+            hasItems = true;
+            var itemTotal = (price * qty) - disc;
+            totalQty += qty;
+            subtotal += (price * qty);
+            totalDisc += disc;
+            itemsHtml += '<div class="confirm-item"><span>' + name + ' x ' + qty + '</span><span>₦' + itemTotal.toLocaleString() + '</span></div>';
+        }
+    });
+    
+    if (!hasItems) {
+        alert('Please add at least one item to the order!');
+        return;
+    }
+    
+    var grandTotal = subtotal - totalDisc;
+    
+    document.getElementById('confirm-items-list').innerHTML = itemsHtml;
+    
+    var totalsHtml = '<p><span>Total Qty:</span> <span>' + totalQty + '</span></p>';
+    totalsHtml += '<p><span>Subtotal:</span> <span>₦' + subtotal.toLocaleString() + '</span></p>';
+    if (totalDisc > 0) {
+        totalsHtml += '<p><span>Discount:</span> <span>-₦' + totalDisc.toLocaleString() + '</span></p>';
+    }
+    totalsHtml += '<p class="grand"><span>Grand Total:</span> <span>₦' + grandTotal.toLocaleString() + '</span></p>';
+    document.getElementById('confirm-totals').innerHTML = totalsHtml;
+    
+    var paymentInfo = 'Payment: ' + method.charAt(0).toUpperCase() + method.slice(1);
+    if (customerName) {
+        paymentInfo += ' | Customer: ' + customerName;
+    }
+    document.getElementById('confirm-payment-info').textContent = paymentInfo;
+    
+    document.getElementById('confirm-modal').classList.add('active');
+}
+
+function hideConfirmation() {
+    document.getElementById('confirm-modal').classList.remove('active');
+}
+
+function submitOrder() {
+    hideConfirmation();
+    // Add hidden submit button and trigger form submission
+    var form = document.getElementById('order-form');
+    var submitBtn = document.createElement('input');
+    submitBtn.type = 'hidden';
+    submitBtn.name = 'cfi_submit_order';
+    submitBtn.value = '1';
+    form.appendChild(submitBtn);
+    form.submit();
+}
+
 function printReceipt() {
     // Generate text-format receipt for 80mm mobile printers
     var receiptText = generateTextReceipt();
     
     // Create print window
     var printWindow = window.open('', '', 'width=300,height=600');
-    printWindow.document.write('<html><head><title>Receipt</title>');
-    printWindow.document.write('<style>');
-    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
-    printWindow.document.write('pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; }');
-    printWindow.document.write('@media print { body { width: 72mm; margin: 0; padding: 1mm; } }');
-    printWindow.document.write('</style></head><body>');
-    printWindow.document.write('<pre>' + receiptText + '</pre>');
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(function() {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
+    if (printWindow) {
+        printWindow.document.write('<html><head><title>Receipt</title>');
+        printWindow.document.write('<style>');
+        printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
+        printWindow.document.write('pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; }');
+        printWindow.document.write('@media print { body { width: 72mm; margin: 0; padding: 1mm; } }');
+        printWindow.document.write('</style></head><body>');
+        printWindow.document.write('<pre>' + receiptText + '</pre>');
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Print and then redirect
+        setTimeout(function() {
+            printWindow.print();
+            printWindow.close();
+            // Redirect to new order after print
+            window.location.href = window.location.pathname;
+        }, 500);
+    }
 }
 
 function generateTextReceipt() {
@@ -746,21 +911,28 @@ function generateTextReceipt() {
 }
 
 function closeReceipt() {
-    document.getElementById('receipt-modal').style.display = 'none';
-    location.reload();
+    var modal = document.getElementById('receipt-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.remove();
+    }
+    // Redirect to fresh page
+    window.location.href = window.location.pathname;
 }
 
-// Form validation
-document.getElementById('order-form').addEventListener('submit', function(e) {
-    var method = document.getElementById('payment-method').value;
-    var customerName = document.getElementById('customer_name').value.trim();
-    
-    if (method === 'transfer' && !customerName) {
-        e.preventDefault();
-        alert('Customer name is required for transfer/card payments!');
-        document.getElementById('customer_name').classList.add('required');
-        document.getElementById('customer_name').focus();
-        return false;
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    var confirmModal = document.getElementById('confirm-modal');
+    if (e.target === confirmModal) {
+        hideConfirmation();
+    }
+});
+
+// Close receipt modal when clicking outside or pressing Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideConfirmation();
+        closeReceipt();
     }
 });
 </script>
