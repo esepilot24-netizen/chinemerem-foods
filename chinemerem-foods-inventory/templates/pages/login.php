@@ -43,7 +43,20 @@ $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
             overflow: hidden;
         }
         
-        /* Image placeholder background - User can customize this */
+        /* 
+         * ======================================
+         * LOGIN BACKGROUND IMAGE CUSTOMIZATION
+         * ======================================
+         * To add your own full-width background image:
+         * 1. Upload your image to WordPress Media Library
+         * 2. Copy the image URL
+         * 3. Replace the 'background' line below with:
+         *    background-image: url('YOUR_IMAGE_URL_HERE');
+         * 
+         * Example:
+         *    background-image: url('/wp-content/uploads/2026/01/my-background.jpg');
+         * ======================================
+         */
         .login-wrapper::before {
             content: '';
             position: absolute;
@@ -51,9 +64,9 @@ $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
             left: 0;
             right: 0;
             bottom: 0;
-            /* CUSTOMIZABLE: Replace this URL with your own image */
-            /* Example: background-image: url('your-image-url.jpg'); */
+            /* REPLACE THIS LINE WITH YOUR IMAGE URL */
             background: linear-gradient(135deg, #001943 0%, #002960 50%, #001943 100%);
+            /* Example with image: background-image: url('/wp-content/uploads/your-image.jpg'); */
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -101,25 +114,24 @@ $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
         .login-logo .logo-icon {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #001943 0%, #002960 100%);
+            background: transparent;
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 1rem;
-            box-shadow: 0 10px 30px rgba(0,25,67,0.3);
             overflow: hidden;
         }
         
         .login-logo .logo-icon img {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             object-fit: contain;
         }
         
         .login-logo .logo-icon i {
-            font-size: 2.5rem;
-            color: white;
+            font-size: 3rem;
+            color: #001943;
         }
         
         .login-logo h1 {
@@ -162,7 +174,7 @@ $logo_url = CFI_PLUGIN_URL . 'assets/images/logo.svg';
         
         .form-input {
             width: 100%;
-            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            padding: 0.875rem 1rem 0.875rem 3rem;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 1rem;

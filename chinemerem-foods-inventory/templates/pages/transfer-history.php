@@ -1,6 +1,6 @@
 <?php
 /**
- * Transfer History Page Template - REBUILT WITH CUSTOMER NAME COLUMN
+ * Transfer History Page Template - WITH SUPER ADMIN EDIT/DELETE
  */
 
 if (!defined('ABSPATH')) {
@@ -9,6 +9,50 @@ if (!defined('ABSPATH')) {
 
 // Ensure database tables exist
 CFI_Database::create_tables();
+
+$is_super_admin = CFI_Auth::is_super_admin();
+$message = '';
+$message_type = '';
+
+// Handle Delete Action
+if (isset($_POST['cfi_delete_transfer']) && $is_super_admin && wp_verify_nonce($_POST['cfi_delete_nonce'], 'cfi_delete_transfer')) {
+    global $wpdb;
+    $transfer_id = intval($_POST['transfer_id']);
+    $transfers_table = $wpdb->prefix . 'cfi_transfer_history';
+    $result = $wpdb->delete($transfers_table, array('id' => $transfer_id), array('%d'));
+    if ($result) {
+        $message = 'Transfer record deleted successfully';
+        $message_type = 'success';
+    } else {
+        $message = 'Failed to delete transfer record';
+        $message_type = 'error';
+    }
+}
+
+// Handle Edit Action
+if (isset($_POST['cfi_edit_transfer']) && $is_super_admin && wp_verify_nonce($_POST['cfi_edit_nonce'], 'cfi_edit_transfer')) {
+    global $wpdb;
+    $transfer_id = intval($_POST['transfer_id']);
+    $customer_name = sanitize_text_field($_POST['customer_name']);
+    $amount = floatval($_POST['amount']);
+    $bank_name = sanitize_text_field($_POST['bank_name']);
+    
+    $transfers_table = $wpdb->prefix . 'cfi_transfer_history';
+    $result = $wpdb->update(
+        $transfers_table,
+        array('customer_name' => $customer_name, 'amount' => $amount, 'bank_name' => $bank_name),
+        array('id' => $transfer_id),
+        array('%s', '%f', '%s'),
+        array('%d')
+    );
+    if ($result !== false) {
+        $message = 'Transfer record updated successfully';
+        $message_type = 'success';
+    } else {
+        $message = 'Failed to update transfer record';
+        $message_type = 'error';
+    }
+}
 
 $today = current_time('Y-m-d');
 $start_date = isset($_GET['start']) ? sanitize_text_field($_GET['start']) : $today;
@@ -122,6 +166,23 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
         .customer-name { font-weight: 600; color: #001943; }
         .amount { font-weight: 600; color: #16a34a; }
         .bank { color: #7c3aed; font-weight: 500; }
+        .action-btn { padding: 0.3rem 0.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin: 0.1rem; }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-delete { background: #dc2626; color: white; }
+        .btn-edit:hover { background: #2563eb; }
+        .btn-delete:hover { background: #b91c1c; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 1.5rem; max-width: 400px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .modal-header h3 { margin: 0; color: #001943; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 600; color: #001943; font-size: 0.85rem; }
+        .form-input { width: 100%; padding: 0.6rem; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; }
         
         tfoot td { background: #001943; color: white; font-weight: 600; }
         .empty { text-align: center; padding: 2rem; color: #64748b; }
@@ -158,6 +219,12 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
         </form>
     </div>
     
+    <?php if ($message) : ?>
+    <div class="alert alert-<?php echo $message_type; ?>">
+        <?php echo esc_html($message); ?>
+    </div>
+    <?php endif; ?>
+    
     <!-- Transfers from Orders -->
     <div class="glass">
         <h3><i class="fas fa-shopping-cart"></i> Transfers from Orders</h3>
@@ -171,11 +238,12 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <th>Amount (₦)</th>
                         <th>Bank</th>
                         <th>Staff</th>
+                        <?php if ($is_super_admin) : ?><th>Actions</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($order_transfers)) : ?>
-                    <tr><td colspan="6" class="empty">No transfer records found</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '7' : '6'; ?>" class="empty">No transfer records found</td></tr>
                     <?php else : ?>
                     <?php 
                     $total = 0;
@@ -189,6 +257,16 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <td class="amount">₦<?php echo number_format($t->amount, 0); ?></td>
                         <td class="bank"><?php echo esc_html($t->bank_name); ?></td>
                         <td><?php echo esc_html($t->staff_name ?: 'Unknown'); ?></td>
+                        <?php if ($is_super_admin) : ?>
+                        <td>
+                            <button type="button" class="action-btn btn-edit" onclick="openEditModal(<?php echo esc_attr($t->id); ?>, '<?php echo esc_js($t->customer_name); ?>', <?php echo esc_attr($t->amount); ?>, '<?php echo esc_js($t->bank_name); ?>')"><i class="fas fa-edit"></i></button>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this record?');">
+                                <?php wp_nonce_field('cfi_delete_transfer', 'cfi_delete_nonce'); ?>
+                                <input type="hidden" name="transfer_id" value="<?php echo esc_attr($t->id); ?>">
+                                <button type="submit" name="cfi_delete_transfer" class="action-btn btn-delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -197,7 +275,7 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                 <tfoot>
                     <tr>
                         <td colspan="3"><strong>Total</strong></td>
-                        <td colspan="3"><strong>₦<?php echo number_format($total, 0); ?></strong></td>
+                        <td colspan="<?php echo $is_super_admin ? '4' : '3'; ?>"><strong>₦<?php echo number_format($total, 0); ?></strong></td>
                     </tr>
                 </tfoot>
                 <?php endif; ?>
@@ -218,11 +296,12 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <th>Amount (₦)</th>
                         <th>Bank</th>
                         <th>Staff</th>
+                        <?php if ($is_super_admin) : ?><th>Actions</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($cashout_transfers)) : ?>
-                    <tr><td colspan="6" class="empty">No cash out records found</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '7' : '6'; ?>" class="empty">No cash out records found</td></tr>
                     <?php else : ?>
                     <?php 
                     $total_cashout = 0;
@@ -236,6 +315,16 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <td class="amount">₦<?php echo number_format($t->amount, 0); ?></td>
                         <td class="bank"><?php echo esc_html($t->bank_name); ?></td>
                         <td><?php echo esc_html($t->staff_name ?: 'Unknown'); ?></td>
+                        <?php if ($is_super_admin) : ?>
+                        <td>
+                            <button type="button" class="action-btn btn-edit" onclick="openEditModal(<?php echo esc_attr($t->id); ?>, '<?php echo esc_js($t->customer_name); ?>', <?php echo esc_attr($t->amount); ?>, '<?php echo esc_js($t->bank_name); ?>')"><i class="fas fa-edit"></i></button>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this record?');">
+                                <?php wp_nonce_field('cfi_delete_transfer', 'cfi_delete_nonce'); ?>
+                                <input type="hidden" name="transfer_id" value="<?php echo esc_attr($t->id); ?>">
+                                <button type="submit" name="cfi_delete_transfer" class="action-btn btn-delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -244,7 +333,7 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                 <tfoot>
                     <tr>
                         <td colspan="3"><strong>Total</strong></td>
-                        <td colspan="3"><strong>₦<?php echo number_format($total_cashout, 0); ?></strong></td>
+                        <td colspan="<?php echo $is_super_admin ? '4' : '3'; ?>"><strong>₦<?php echo number_format($total_cashout, 0); ?></strong></td>
                     </tr>
                 </tfoot>
                 <?php endif; ?>
@@ -265,11 +354,12 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <th>Amount (₦)</th>
                         <th>Bank</th>
                         <th>Staff</th>
+                        <?php if ($is_super_admin) : ?><th>Actions</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($debtor_transfers)) : ?>
-                    <tr><td colspan="6" class="empty">No debtor transfer records found</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '7' : '6'; ?>" class="empty">No debtor transfer records found</td></tr>
                     <?php else : ?>
                     <?php 
                     $total_debtor = 0;
@@ -283,6 +373,16 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                         <td class="amount">₦<?php echo number_format($t->amount, 0); ?></td>
                         <td class="bank"><?php echo esc_html($t->bank_name); ?></td>
                         <td><?php echo esc_html($t->staff_name ?: 'Unknown'); ?></td>
+                        <?php if ($is_super_admin) : ?>
+                        <td>
+                            <button type="button" class="action-btn btn-edit" onclick="openEditModal(<?php echo esc_attr($t->id); ?>, '<?php echo esc_js($t->customer_name); ?>', <?php echo esc_attr($t->amount); ?>, '<?php echo esc_js($t->bank_name); ?>')"><i class="fas fa-edit"></i></button>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this record?');">
+                                <?php wp_nonce_field('cfi_delete_transfer', 'cfi_delete_nonce'); ?>
+                                <input type="hidden" name="transfer_id" value="<?php echo esc_attr($t->id); ?>">
+                                <button type="submit" name="cfi_delete_transfer" class="action-btn btn-delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -291,7 +391,7 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
                 <tfoot>
                     <tr>
                         <td colspan="3"><strong>Total</strong></td>
-                        <td colspan="3"><strong>₦<?php echo number_format($total_debtor, 0); ?></strong></td>
+                        <td colspan="<?php echo $is_super_admin ? '4' : '3'; ?>"><strong>₦<?php echo number_format($total_debtor, 0); ?></strong></td>
                     </tr>
                 </tfoot>
                 <?php endif; ?>
@@ -299,5 +399,55 @@ $debtor_transfers = $wpdb->get_results($wpdb->prepare(
         </div>
     </div>
 </div>
+
+<?php if ($is_super_admin) : ?>
+<!-- Edit Modal -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Edit Transfer</h3>
+            <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form method="POST">
+            <?php wp_nonce_field('cfi_edit_transfer', 'cfi_edit_nonce'); ?>
+            <input type="hidden" name="transfer_id" id="edit_transfer_id">
+            <div class="form-group">
+                <label>Customer Name</label>
+                <input type="text" name="customer_name" id="edit_customer_name" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Amount (₦)</label>
+                <input type="number" name="amount" id="edit_amount" class="form-input" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label>Bank</label>
+                <select name="bank_name" id="edit_bank_name" class="form-input">
+                    <option value="Moniepoint MFB">Moniepoint MFB</option>
+                    <option value="Access Bank PLC">Access Bank PLC</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" name="cfi_edit_transfer" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, customerName, amount, bankName) {
+    document.getElementById('edit_transfer_id').value = id;
+    document.getElementById('edit_customer_name').value = customerName || '';
+    document.getElementById('edit_amount').value = amount;
+    document.getElementById('edit_bank_name').value = bankName;
+    document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+</script>
+<?php endif; ?>
+
 </body>
 </html>

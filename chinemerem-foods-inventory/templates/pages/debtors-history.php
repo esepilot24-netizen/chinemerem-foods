@@ -1,11 +1,30 @@
 <?php
 /**
- * Debtors History Page Template - REBUILT
+ * Debtors History Page Template - WITH SUPER ADMIN DELETE
  * Uses direct PHP data loading
  */
 
 if (!defined('ABSPATH')) {
     exit;
+}
+
+$is_super_admin = CFI_Auth::is_super_admin();
+$message = '';
+$message_type = '';
+
+// Handle Delete Action
+if (isset($_POST['cfi_delete_transaction']) && $is_super_admin && wp_verify_nonce($_POST['cfi_delete_nonce'], 'cfi_delete_transaction')) {
+    global $wpdb;
+    $trans_id = intval($_POST['transaction_id']);
+    $trans_table = $wpdb->prefix . 'cfi_debtor_transactions';
+    $result = $wpdb->delete($trans_table, array('id' => $trans_id), array('%d'));
+    if ($result) {
+        $message = 'Transaction deleted successfully';
+        $message_type = 'success';
+    } else {
+        $message = 'Failed to delete transaction';
+        $message_type = 'error';
+    }
 }
 
 // Get history from database
@@ -62,6 +81,12 @@ $debtors = CFI_Debtors::get_all();
         .cfi-badge-adjustment { background: #fef3c7; color: #92400e; }
         .cfi-empty { text-align: center; padding: 3rem; color: #64748b; }
         .cfi-empty i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .btn-delete { background: #dc2626; color: white; }
+        .btn-delete:hover { background: #b91c1c; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
         @media (max-width: 768px) {
             .cfi-table, .cfi-table thead, .cfi-table tbody, .cfi-table th, .cfi-table td, .cfi-table tr { display: block; }
             .cfi-table thead { display: none; }
@@ -98,6 +123,12 @@ $debtors = CFI_Debtors::get_all();
         </button>
     </form>
     
+    <?php if ($message) : ?>
+    <div class="alert alert-<?php echo $message_type; ?>">
+        <?php echo esc_html($message); ?>
+    </div>
+    <?php endif; ?>
+    
     <!-- History Table -->
     <div class="cfi-glass">
         <?php if (empty($history)) : ?>
@@ -120,6 +151,7 @@ $debtors = CFI_Debtors::get_all();
                         <th>After</th>
                         <th>Method</th>
                         <th>Staff</th>
+                        <?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -145,6 +177,15 @@ $debtors = CFI_Debtors::get_all();
                         <td data-label="After" style="font-weight: 600;">₦<?php echo number_format((float)$record->balance_after, 2); ?></td>
                         <td data-label="Method"><?php echo esc_html($record->payment_method ?: '-'); ?></td>
                         <td data-label="Staff"><?php echo esc_html($record->staff_name ?: '-'); ?></td>
+                        <?php if ($is_super_admin) : ?>
+                        <td>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this transaction?');">
+                                <?php wp_nonce_field('cfi_delete_transaction', 'cfi_delete_nonce'); ?>
+                                <input type="hidden" name="transaction_id" value="<?php echo esc_attr($record->id); ?>">
+                                <button type="submit" name="cfi_delete_transaction" class="action-btn btn-delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
