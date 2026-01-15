@@ -323,7 +323,7 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         <?php else : ?>
             <h1><i class="fas fa-user-clock"></i> Debtors Record</h1>
             <?php $debtors_history = get_page_by_path('cfi-debtors-history'); ?>
-            <a href="<?php echo $debtors_history ? esc_url(get_permalink($debtors_history->ID)) : home_url('/cfi-debtors-history/'); ?>" class="cfi-btn cfi-btn-history" style="background: white !important; color: #001943 !important; font-weight: 600 !important;">
+            <a href="<?php echo $debtors_history ? esc_url(get_permalink($debtors_history->ID)) : home_url('/debtors-history/'); ?>" class="cfi-btn cfi-btn-history" style="background: white !important; color: #001943 !important; font-weight: 600 !important;">
                 <i class="fas fa-history" style="color: #001943 !important;"></i> View History
             </a>
         <?php endif; ?>

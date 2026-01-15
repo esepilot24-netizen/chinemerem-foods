@@ -428,11 +428,11 @@ $products = CFI_Products::get_all();
         <h1><i class="fas fa-cart-plus"></i> Take Order</h1>
         <div class="header-buttons">
             <?php $order_history = get_page_by_path('cfi-order-history'); ?>
-            <a href="<?php echo $order_history ? esc_url(get_permalink($order_history->ID)) : home_url('/cfi-order-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
+            <a href="<?php echo $order_history ? esc_url(get_permalink($order_history->ID)) : home_url('/order-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
                 <i class="fas fa-history" style="color: #001943 !important;"></i> Order History
             </a>
             <?php $transfer_history = get_page_by_path('cfi-transfer-history'); ?>
-            <a href="<?php echo $transfer_history ? esc_url(get_permalink($transfer_history->ID)) : home_url('/cfi-transfer-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
+            <a href="<?php echo $transfer_history ? esc_url(get_permalink($transfer_history->ID)) : home_url('/transfer-history/'); ?>" class="btn btn-outline" style="background: white !important; color: #001943 !important; font-weight: 600;">
                 <i class="fas fa-exchange-alt" style="color: #001943 !important;"></i> Transfer History
             </a>
         </div>

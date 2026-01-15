@@ -57,7 +57,7 @@ if (!defined('ABSPATH')) {
             <div class="cfi-page-actions">
                 <?php
                 $debtors_record = get_page_by_path('cfi-debtors-record');
-                $debtors_url = $debtors_record ? get_permalink($debtors_record->ID) : home_url('/cfi-debtors-record/');
+                $debtors_url = $debtors_record ? get_permalink($debtors_record->ID) : home_url('/debtors-record/');
                 ?>
                 <a href="<?php echo esc_url($debtors_url); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-user-clock"></i>

@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(data) {
                 if (data.success) {
                     // Redirect to home
-                    window.location.href = data.data.redirect || '<?php echo esc_js(home_url('/cfi-home/')); ?>';
+                    window.location.href = data.data.redirect || '<?php echo esc_js(home_url('/home/')); ?>';
                 } else {
                     showError(data.data.message || '<?php echo esc_js(__('Login failed. Please check your credentials.', 'chinemerem-foods')); ?>');
                     resetButton();

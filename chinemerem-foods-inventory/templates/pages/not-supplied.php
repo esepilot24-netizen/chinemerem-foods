@@ -59,7 +59,7 @@ $products = CFI_Products::get_all();
             <div class="cfi-page-actions">
                 <?php
                 $not_supplied_history = get_page_by_path('cfi-not-supplied-history');
-                $history_url = $not_supplied_history ? get_permalink($not_supplied_history->ID) : home_url('/cfi-not-supplied-history/');
+                $history_url = $not_supplied_history ? get_permalink($not_supplied_history->ID) : home_url('/not-supplied-history/');
                 ?>
                 <a href="<?php echo esc_url($history_url); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-history"></i>

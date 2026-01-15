@@ -354,7 +354,7 @@ $cash_left = floatval($summary->cash_left ?? 0);
         </h1>
         <?php
         $financial_history = get_page_by_path('cfi-financial-history');
-        $history_url = $financial_history ? get_permalink($financial_history->ID) : home_url('/cfi-financial-history/');
+        $history_url = $financial_history ? get_permalink($financial_history->ID) : home_url('/financial-history/');
         ?>
         <a href="<?php echo esc_url($history_url); ?>" class="cfi-history-btn">
             <i class="fas fa-history"></i>

@@ -140,14 +140,14 @@ foreach ($summary as $item) {
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <?php
             $order_history = get_page_by_path('cfi-order-history');
-            $order_history_url = $order_history ? get_permalink($order_history->ID) : home_url('/cfi-order-history/');
+            $order_history_url = $order_history ? get_permalink($order_history->ID) : home_url('/order-history/');
             ?>
             <a href="<?php echo esc_url($order_history_url); ?>" class="btn btn-outline" style="background: white;">
                 <i class="fas fa-history"></i> Order History
             </a>
             <?php
             $take_order = get_page_by_path('cfi-take-order');
-            $take_order_url = $take_order ? get_permalink($take_order->ID) : home_url('/cfi-take-order/');
+            $take_order_url = $take_order ? get_permalink($take_order->ID) : home_url('/take-order/');
             ?>
             <a href="<?php echo esc_url($take_order_url); ?>" class="btn btn-outline" style="background: white;">
                 <i class="fas fa-cart-plus"></i> Take Order

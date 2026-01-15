@@ -56,7 +56,7 @@ if (!defined('ABSPATH')) {
             </h1>
             <div class="cfi-page-actions">
                 <?php $stock_history = get_page_by_path('cfi-stock-history'); ?>
-                <a href="<?php echo $stock_history ? esc_url(get_permalink($stock_history->ID)) : esc_url(home_url('/cfi-stock-history/')); ?>" class="cfi-btn-history-custom">
+                <a href="<?php echo $stock_history ? esc_url(get_permalink($stock_history->ID)) : esc_url(home_url('/stock-history/')); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-history"></i>
                     <?php esc_html_e('View History', 'chinemerem-foods'); ?>
                 </a>
