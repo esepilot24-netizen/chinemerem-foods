@@ -152,16 +152,23 @@ class CFI_Shortcodes {
     }
     
     /**
-     * Render mobile navigation
+     * Render mobile navigation with sleek bottom bar
      */
     private function render_mobile_nav() {
-        $menu_items = CFI_Pages::get_menu_items(true);
+        // Custom mobile nav items with short labels and sleek icons
+        $mobile_nav = array(
+            array('url' => '/cfi-home/', 'icon' => 'fa-home', 'label' => 'Home'),
+            array('url' => '/cfi-take-order/', 'icon' => 'fa-cart-plus', 'label' => 'Order'),
+            array('url' => '/cfi-stock-record/', 'icon' => 'fa-boxes', 'label' => 'Stock'),
+            array('url' => '/cfi-transfer-history/', 'icon' => 'fa-exchange-alt', 'label' => 'History'),
+            array('url' => '/cfi-profile/', 'icon' => 'fa-user-circle', 'label' => 'Profile'),
+        );
         ?>
         <nav class="cfi-mobile-nav" id="cfi-mobile-nav">
-            <?php foreach ($menu_items as $item) : ?>
-            <a href="<?php echo esc_url($item['url']); ?>" class="cfi-mobile-nav-item">
+            <?php foreach ($mobile_nav as $item) : ?>
+            <a href="<?php echo esc_url(home_url($item['url'])); ?>" class="cfi-mobile-nav-item">
                 <i class="fas <?php echo esc_attr($item['icon']); ?>"></i>
-                <span><?php echo esc_html($item['title']); ?></span>
+                <span><?php echo esc_html($item['label']); ?></span>
             </a>
             <?php endforeach; ?>
         </nav>

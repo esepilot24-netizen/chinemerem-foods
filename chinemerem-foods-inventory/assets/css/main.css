@@ -102,6 +102,56 @@ body .fas, body .fa, body .far, body .fab,
     text-rendering: auto !important;
 }
 
+/* GLOBAL DARK HEADER STYLES - Ensures all text visible on dark backgrounds */
+.cfi-page-header,
+.cfi-form-header,
+[class*="header"][style*="background"],
+.cfi-order-header,
+.cfi-debtor-header {
+    color: white !important;
+}
+
+.cfi-page-header h1,
+.cfi-page-header h2,
+.cfi-page-header h3,
+.cfi-page-header h4,
+.cfi-page-header p,
+.cfi-page-header span,
+.cfi-page-header a,
+.cfi-page-header i,
+.cfi-form-header h1,
+.cfi-form-header h2,
+.cfi-form-header h3,
+.cfi-form-header p,
+.cfi-form-header span,
+.cfi-form-header a,
+.cfi-form-header i {
+    color: white !important;
+    font-size: 0.875rem !important;
+}
+
+.cfi-page-header h1,
+.cfi-form-header h1 {
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+}
+
+/* Sleek button styles for headers */
+.cfi-btn-history {
+    background: #ffffff !important;
+    color: #001943 !important;
+    border: 2px solid #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+
+.cfi-btn-history:hover {
+    background: #f0f0f0 !important;
+    transform: translateY(-2px) !important;
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6,
 body h1, body h2, body h3, body h4, body h5, body h6,
@@ -603,41 +653,60 @@ body .cfi-table {
     text-decoration: underline;
 }
 
-/* Mobile Navigation */
+/* Mobile Navigation - Sleek Bottom Bar */
 .cfi-mobile-nav {
     display: none;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--cfi-glass-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid var(--cfi-border);
-    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(0, 25, 67, 0.1) !important;
+    padding: 0.5rem 0.25rem !important;
     z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0, 25, 67, 0.1) !important;
 }
 
 .cfi-mobile-nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem;
-    color: var(--cfi-gray);
-    font-size: 0.7rem;
-    border-radius: var(--cfi-radius-sm);
-    transition: var(--cfi-transition);
+    gap: 0.15rem !important;
+    padding: 0.4rem 0.3rem !important;
+    color: #64748b !important;
+    font-size: 0.6rem !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    text-decoration: none !important;
+    flex: 1;
+    text-align: center;
+}
+
+.cfi-mobile-nav-item span {
+    font-size: 0.55rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60px;
 }
 
 .cfi-mobile-nav-item i {
-    font-size: 1.25rem;
+    font-size: 1.1rem !important;
+    transition: transform 0.2s ease !important;
 }
 
 .cfi-mobile-nav-item:hover,
 .cfi-mobile-nav-item.active {
-    color: var(--cfi-accent);
-    background: var(--cfi-light);
+    color: #001943 !important;
+    background: rgba(0, 25, 67, 0.05) !important;
+}
+
+.cfi-mobile-nav-item:hover i,
+.cfi-mobile-nav-item.active i {
+    transform: scale(1.1) !important;
 }
 
 /* Scroll to Top */

@@ -313,7 +313,7 @@ class CFI_Pages {
         $pages = self::get_pages_config();
         $menu_items = array();
         
-        $mobile_items = array('cfi-home', 'cfi-take-order', 'cfi-stock-record', 'cfi-financial-summary', 'cfi-transfer-history', 'cfi-profile');
+        $mobile_items = array('cfi-home', 'cfi-take-order', 'cfi-stock-record', 'cfi-transfer-history', 'cfi-profile');
         
         foreach ($pages as $page) {
             if (!isset($page['show_in_menu']) || !$page['show_in_menu']) {

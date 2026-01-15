@@ -246,14 +246,16 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .cfi-debtors-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-        .cfi-page-header h1 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: white !important; }
-        .cfi-page-header h1 i { color: white !important; }
-        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.75rem; transition: all 0.3s; }
+        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .cfi-page-header h1 { margin: 0; font-size: 0.875rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 600; color: white !important; }
+        .cfi-page-header h1 i { color: white !important; font-size: 0.875rem; }
+        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
         .cfi-btn-primary { background: #001943; color: white; }
         .cfi-btn-success { background: #16a34a; color: white; }
         .cfi-btn-danger { background: #dc2626; color: white; }
         .cfi-btn-outline { background: transparent; border: 2px solid #001943; color: #001943; }
+        /* View History button - white background with dark text for visibility */
+        .cfi-btn-history { background: #ffffff !important; color: #001943 !important; border: 2px solid #ffffff; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .cfi-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,25,67,0.3); }
         .cfi-alert { padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
         .cfi-alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
@@ -317,7 +319,7 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
             </h1>
         <?php else : ?>
             <h1><i class="fas fa-user-clock"></i> Debtors Record</h1>
-            <a href="/debtors-history/" class="cfi-btn cfi-btn-outline" style="background: white;">
+            <a href="/debtors-history/" class="cfi-btn cfi-btn-history">
                 <i class="fas fa-history"></i> View History
             </a>
         <?php endif; ?>

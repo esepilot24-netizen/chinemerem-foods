@@ -46,23 +46,24 @@ $history = CFI_Financial::get_history($start_date, $end_date);
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white;
-            padding: 1.5rem;
+            color: white !important;
+            padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
+        .page-header h1 i { color: white !important; font-size: 0.9rem; }
         
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
+            gap: 0.4rem;
+            padding: 0.5rem 0.75rem;
             border: none;
             border-radius: 8px;
             font-weight: 600;

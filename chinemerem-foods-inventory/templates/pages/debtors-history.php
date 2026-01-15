@@ -60,9 +60,10 @@ $debtors = CFI_Debtors::get_all();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .cfi-history-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-        .cfi-page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .cfi-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.85rem; transition: all 0.3s; }
+        .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white !important; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .cfi-page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
+        .cfi-page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
         .cfi-btn-primary { background: #001943; color: white; }
         .cfi-btn-outline { background: white; border: 2px solid #001943; color: #001943; }
         .cfi-glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,25,67,0.1); border: 2px solid rgba(0,25,67,0.1); margin-bottom: 1.5rem; }

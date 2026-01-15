@@ -177,17 +177,18 @@ $products = CFI_Products::get_all();
         
         .page-header {
             background: linear-gradient(135deg, #001943, #002960);
-            color: white;
-            padding: 1.5rem;
+            color: white !important;
+            padding: 0.75rem 1rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.5rem;
         }
-        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
+        .page-header h1 i { color: white !important; font-size: 0.9rem; }
         .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         
         .btn {
@@ -412,9 +413,11 @@ $products = CFI_Products::get_all();
         }
         
         @media (max-width: 768px) {
-            .page-header { flex-direction: column; text-align: center; }
+            .page-header { flex-direction: column; text-align: center; padding: 0.5rem 0.75rem; }
+            .page-header h1 { font-size: 0.8rem; }
             .order-table { font-size: 0.75rem; }
             .order-table input { width: 50px; padding: 0.3rem; }
+            .btn { font-size: 0.7rem; padding: 0.4rem 0.6rem; }
         }
     </style>
 </head>
@@ -423,10 +426,10 @@ $products = CFI_Products::get_all();
     <div class="page-header">
         <h1><i class="fas fa-cart-plus"></i> Take Order</h1>
         <div class="header-buttons">
-            <a href="/order-history/" class="btn btn-outline" style="background: white;">
+            <a href="/order-history/" class="btn btn-outline" style="background: white; color: #001943;">
                 <i class="fas fa-history"></i> Order History
             </a>
-            <a href="/transfer-history/" class="btn btn-outline" style="background: white;">
+            <a href="/transfer-history/" class="btn btn-outline" style="background: white; color: #001943;">
                 <i class="fas fa-exchange-alt"></i> Transfer History
             </a>
         </div>

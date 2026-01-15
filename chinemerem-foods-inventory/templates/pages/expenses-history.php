@@ -65,9 +65,10 @@ foreach ($expenses as $exp) {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-        .page-header { background: linear-gradient(135deg, #001943, #002960); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.85rem; transition: all 0.3s; }
+        .page-header { background: linear-gradient(135deg, #001943, #002960); color: white !important; padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .page-header h1 { margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; color: white !important; font-weight: 600; }
+        .page-header h1 i { color: white !important; font-size: 0.9rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.7rem; transition: all 0.3s; }
         .btn-primary { background: #001943; color: white; }
         .btn-outline { background: white; border: 2px solid #001943; color: #001943; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -75,7 +76,7 @@ foreach ($expenses as $exp) {
         .filters { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem; }
         .filter-group label { display: block; font-weight: 600; color: #001943; font-size: 0.8rem; margin-bottom: 0.25rem; }
         .filter-input { padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; }
-        .day-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #001943; color: white; border-radius: 8px; margin-bottom: 0.75rem; }
+        .day-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: #001943; color: white; border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.8rem; }
         .day-total { color: #f87171; font-weight: 600; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { background: #f1f5f9; padding: 0.6rem 0.5rem; text-align: left; color: #001943; font-size: 0.75rem; }
