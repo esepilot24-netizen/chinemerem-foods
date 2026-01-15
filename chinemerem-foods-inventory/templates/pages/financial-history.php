@@ -1,10 +1,29 @@
 <?php
 /**
- * Financial History Page Template - REBUILT WITH PHP DATA LOADING
+ * Financial History Page Template - WITH SUPER ADMIN DELETE
  */
 
 if (!defined('ABSPATH')) {
     exit;
+}
+
+$is_super_admin = CFI_Auth::is_super_admin();
+$message = '';
+$message_type = '';
+
+// Handle Delete Action
+if (isset($_POST['cfi_delete_financial']) && $is_super_admin && wp_verify_nonce($_POST['cfi_delete_nonce'], 'cfi_delete_financial')) {
+    global $wpdb;
+    $record_id = intval($_POST['record_id']);
+    $summary_table = $wpdb->prefix . 'cfi_daily_summary';
+    $result = $wpdb->delete($summary_table, array('id' => $record_id), array('%d'));
+    if ($result) {
+        $message = 'Financial record deleted successfully';
+        $message_type = 'success';
+    } else {
+        $message = 'Failed to delete record';
+        $message_type = 'error';
+    }
 }
 
 // Get date range
@@ -92,6 +111,13 @@ $history = CFI_Financial::get_history($start_date, $end_date);
         .highlight { font-weight: 700; color: #16a34a; font-size: 0.9rem; }
         .date-col { font-weight: 600; color: #001943; }
         
+        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .btn-delete { background: #dc2626; color: white; }
+        .btn-delete:hover { background: #b91c1c; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        
         .empty { text-align: center; padding: 2rem; color: #64748b; }
         
         @media (max-width: 768px) {
@@ -127,6 +153,12 @@ $history = CFI_Financial::get_history($start_date, $end_date);
         </form>
     </div>
     
+    <?php if ($message) : ?>
+    <div class="alert alert-<?php echo $message_type; ?>">
+        <?php echo esc_html($message); ?>
+    </div>
+    <?php endif; ?>
+    
     <div class="glass">
         <h3><i class="fas fa-table"></i> Financial Records</h3>
         <div class="table-wrapper">
@@ -143,11 +175,12 @@ $history = CFI_Financial::get_history($start_date, $end_date);
                         <th>Old Cash</th>
                         <th>Cash to Bank</th>
                         <th>Cash Left</th>
+                        <?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($history)) : ?>
-                    <tr><td colspan="10" class="empty">No financial records found for the selected period</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '11' : '10'; ?>" class="empty">No financial records found for the selected period</td></tr>
                     <?php else : ?>
                     <?php foreach ($history as $record) : ?>
                     <tr>
@@ -161,6 +194,15 @@ $history = CFI_Financial::get_history($start_date, $end_date);
                         <td>₦<?php echo number_format($record->old_cash, 0); ?></td>
                         <td class="negative">-₦<?php echo number_format($record->cash_to_bank, 0); ?></td>
                         <td class="highlight">₦<?php echo number_format($record->cash_left, 0); ?></td>
+                        <?php if ($is_super_admin) : ?>
+                        <td>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this financial record?');">
+                                <?php wp_nonce_field('cfi_delete_financial', 'cfi_delete_nonce'); ?>
+                                <input type="hidden" name="record_id" value="<?php echo esc_attr($record->id); ?>">
+                                <button type="submit" name="cfi_delete_financial" class="action-btn btn-delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>

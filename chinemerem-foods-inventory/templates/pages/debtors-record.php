@@ -247,7 +247,8 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
     <style>
         .cfi-debtors-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
         .cfi-page-header { background: linear-gradient(135deg, #001943, #003366); color: white; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
-        .cfi-page-header h1 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+        .cfi-page-header h1 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: white !important; }
+        .cfi-page-header h1 i { color: white !important; }
         .cfi-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.75rem; transition: all 0.3s; }
         .cfi-btn-primary { background: #001943; color: white; }
         .cfi-btn-success { background: #16a34a; color: white; }
@@ -285,7 +286,8 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         .cfi-bank-options { display: none; margin-bottom: 1rem; }
         .cfi-bank-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer; }
         .cfi-bank-option input { width: auto; }
-        .cfi-back-link { color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 500; }
+        .cfi-back-link { color: white !important; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; }
+        .cfi-back-link:hover { text-decoration: underline; }
         .cfi-no-debtors { text-align: center; padding: 3rem; color: #64748b; }
         .cfi-no-debtors i { font-size: 3rem; margin-bottom: 1rem; display: block; }
         @media (max-width: 768px) {
