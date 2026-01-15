@@ -7,15 +7,55 @@ if (!defined('ABSPATH')) {
     exit;
 }
 ?>
+<style>
+    .cfi-page-header-custom {
+        background: linear-gradient(135deg, #001943, #002960);
+        color: #ffffff !important;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .cfi-page-header-custom h1 {
+        margin: 0;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+    .cfi-page-header-custom h1 i { color: #ffffff !important; font-size: 0.75rem; }
+    .cfi-btn-history-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.65rem;
+        text-decoration: none;
+        background: #ffffff !important;
+        color: #001943 !important;
+        border: 2px solid #001943;
+        box-shadow: 0 2px 8px rgba(0,25,67,0.15);
+    }
+    .cfi-btn-history-custom i { color: #001943 !important; }
+    .cfi-btn-history-custom:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+</style>
 <main class="cfi-main">
     <div class="cfi-container">
-        <div class="cfi-page-title">
+        <div class="cfi-page-header-custom">
             <h1>
                 <i class="fas fa-boxes"></i>
                 <?php esc_html_e('Stock Inventory', 'chinemerem-foods'); ?>
             </h1>
             <div class="cfi-page-actions">
-                <a href="<?php echo esc_url(home_url('/stock-history/')); ?>" class="cfi-btn cfi-btn-outline cfi-btn-sm">
+                <a href="<?php echo esc_url(home_url('/stock-history/')); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-history"></i>
                     <?php esc_html_e('View History', 'chinemerem-foods'); ?>
                 </a>

@@ -189,25 +189,25 @@ $products = CFI_Products::get_all();
         }
         .page-header h1 { margin: 0; font-size: 0.75rem; display: flex; align-items: center; gap: 0.4rem; color: #ffffff !important; font-weight: 600; }
         .page-header h1 i { color: #ffffff !important; font-size: 0.75rem; }
-        .page-header a, .page-header span { color: #ffffff !important; }
+        .page-header a, .page-header span { color: #001943 !important; }
         .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
+            gap: 0.4rem;
+            padding: 0.5rem 0.75rem;
             border: none;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            font-size: 0.85rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
-        .btn-primary { background: #001943; color: white; }
-        .btn-success { background: #16a34a; color: white; }
-        .btn-outline { background: white; border: 2px solid #001943; color: #001943; }
+        .btn-primary { background: #001943; color: white !important; }
+        .btn-success { background: #16a34a; color: white !important; }
+        .btn-outline { background: #ffffff !important; border: 2px solid #001943; color: #001943 !important; }
         .btn-print { background: #7c3aed; color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .btn-lg { padding: 1rem 1.5rem; font-size: 1rem; }
