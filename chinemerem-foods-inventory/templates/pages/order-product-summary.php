@@ -137,9 +137,22 @@ foreach ($summary as $item) {
 <div class="container">
     <div class="page-header">
         <h1><i class="fas fa-chart-bar"></i> Order Product Summary</h1>
-        <a href="/take-order/" class="btn btn-outline" style="background: white;">
-            <i class="fas fa-cart-plus"></i> Take Order
-        </a>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <?php
+            $order_history = get_page_by_path('cfi-order-history');
+            $order_history_url = $order_history ? get_permalink($order_history->ID) : home_url('/cfi-order-history/');
+            ?>
+            <a href="<?php echo esc_url($order_history_url); ?>" class="btn btn-outline" style="background: white;">
+                <i class="fas fa-history"></i> Order History
+            </a>
+            <?php
+            $take_order = get_page_by_path('cfi-take-order');
+            $take_order_url = $take_order ? get_permalink($take_order->ID) : home_url('/cfi-take-order/');
+            ?>
+            <a href="<?php echo esc_url($take_order_url); ?>" class="btn btn-outline" style="background: white;">
+                <i class="fas fa-cart-plus"></i> Take Order
+            </a>
+        </div>
     </div>
     
     <div class="glass">

@@ -58,13 +58,14 @@ $cashout_records = CFI_Financial::get_cashout($today);
                 <?php esc_html_e('Cash Out Record', 'chinemerem-foods'); ?>
             </h1>
             <div class="cfi-page-actions">
-                <?php $cashout_history = get_page_by_path('cfi-cash-out-history'); ?>
-                <?php if ($cashout_history) : ?>
-                <a href="<?php echo esc_url(get_permalink($cashout_history->ID)); ?>" class="cfi-btn-history-custom">
+                <?php
+                $cashout_history = get_page_by_path('cfi-cash-out-history');
+                $history_url = $cashout_history ? get_permalink($cashout_history->ID) : home_url('/cfi-cash-out-history/');
+                ?>
+                <a href="<?php echo esc_url($history_url); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-history"></i>
                     <?php esc_html_e('View History', 'chinemerem-foods'); ?>
                 </a>
-                <?php endif; ?>
             </div>
         </div>
         

@@ -57,13 +57,14 @@ $products = CFI_Products::get_all();
                 <?php esc_html_e('Import Record', 'chinemerem-foods'); ?>
             </h1>
             <div class="cfi-page-actions">
-                <?php $import_history = get_page_by_path('cfi-import-history'); ?>
-                <?php if ($import_history) : ?>
-                <a href="<?php echo esc_url(get_permalink($import_history->ID)); ?>" class="cfi-btn-history-custom">
+                <?php
+                $import_history = get_page_by_path('cfi-import-history');
+                $history_url = $import_history ? get_permalink($import_history->ID) : home_url('/cfi-import-history/');
+                ?>
+                <a href="<?php echo esc_url($history_url); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-history"></i>
                     <?php esc_html_e('View History', 'chinemerem-foods'); ?>
                 </a>
-                <?php endif; ?>
             </div>
         </div>
         

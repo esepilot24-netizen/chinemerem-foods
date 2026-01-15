@@ -55,13 +55,14 @@ if (!defined('ABSPATH')) {
                 <?php esc_html_e('Credit Order Summary', 'chinemerem-foods'); ?>
             </h1>
             <div class="cfi-page-actions">
-                <?php $debtors_record = get_page_by_path('cfi-debtors-record'); ?>
-                <?php if ($debtors_record) : ?>
-                <a href="<?php echo esc_url(get_permalink($debtors_record->ID)); ?>" class="cfi-btn-history-custom">
+                <?php
+                $debtors_record = get_page_by_path('cfi-debtors-record');
+                $debtors_url = $debtors_record ? get_permalink($debtors_record->ID) : home_url('/cfi-debtors-record/');
+                ?>
+                <a href="<?php echo esc_url($debtors_url); ?>" class="cfi-btn-history-custom">
                     <i class="fas fa-user-clock"></i>
                     <?php esc_html_e('Debtors', 'chinemerem-foods'); ?>
                 </a>
-                <?php endif; ?>
             </div>
         </div>
         
