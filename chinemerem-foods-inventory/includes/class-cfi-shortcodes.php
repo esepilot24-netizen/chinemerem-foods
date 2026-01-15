@@ -155,18 +155,25 @@ class CFI_Shortcodes {
      * Render mobile navigation with sleek bottom bar
      */
     private function render_mobile_nav() {
-        // Custom mobile nav items with short labels and sleek icons
+        // Get page URLs using WordPress functions
+        $home_page = get_page_by_path('cfi-home');
+        $order_page = get_page_by_path('cfi-take-order');
+        $stock_page = get_page_by_path('cfi-stock-record');
+        $history_page = get_page_by_path('cfi-transfer-history');
+        $profile_page = get_page_by_path('cfi-profile');
+        
+        // Build mobile nav items with proper page URLs
         $mobile_nav = array(
-            array('url' => '/cfi-home/', 'icon' => 'fa-home', 'label' => 'Home'),
-            array('url' => '/cfi-take-order/', 'icon' => 'fa-cart-plus', 'label' => 'Order'),
-            array('url' => '/cfi-stock-record/', 'icon' => 'fa-boxes', 'label' => 'Stock'),
-            array('url' => '/cfi-transfer-history/', 'icon' => 'fa-exchange-alt', 'label' => 'History'),
-            array('url' => '/cfi-profile/', 'icon' => 'fa-user-circle', 'label' => 'Profile'),
+            array('url' => $home_page ? get_permalink($home_page->ID) : home_url('/cfi-home/'), 'icon' => 'fa-home', 'label' => 'Home'),
+            array('url' => $order_page ? get_permalink($order_page->ID) : home_url('/cfi-take-order/'), 'icon' => 'fa-cart-plus', 'label' => 'Order'),
+            array('url' => $stock_page ? get_permalink($stock_page->ID) : home_url('/cfi-stock-record/'), 'icon' => 'fa-boxes', 'label' => 'Stock'),
+            array('url' => $history_page ? get_permalink($history_page->ID) : home_url('/cfi-transfer-history/'), 'icon' => 'fa-exchange-alt', 'label' => 'History'),
+            array('url' => $profile_page ? get_permalink($profile_page->ID) : home_url('/cfi-profile/'), 'icon' => 'fa-user-circle', 'label' => 'Profile'),
         );
         ?>
         <nav class="cfi-mobile-nav" id="cfi-mobile-nav">
             <?php foreach ($mobile_nav as $item) : ?>
-            <a href="<?php echo esc_url(home_url($item['url'])); ?>" class="cfi-mobile-nav-item">
+            <a href="<?php echo esc_url($item['url']); ?>" class="cfi-mobile-nav-item">
                 <i class="fas <?php echo esc_attr($item['icon']); ?>"></i>
                 <span><?php echo esc_html($item['label']); ?></span>
             </a>
