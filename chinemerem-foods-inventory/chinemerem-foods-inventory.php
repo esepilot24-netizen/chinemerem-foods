@@ -253,6 +253,9 @@ final class Chinemerem_Foods_Inventory {
             return;
         }
         
+        // Enqueue WordPress media library for image uploads
+        wp_enqueue_media();
+        
         wp_enqueue_style(
             'cfi-admin-style',
             CFI_PLUGIN_URL . 'assets/css/admin.css',

@@ -374,33 +374,136 @@ class CFI_Admin {
      * Render settings page
      */
     public function render_settings() {
+        // Handle form submission
+        if (isset($_POST['cfi_save_settings']) && check_admin_referer('cfi_settings_nonce')) {
+            update_option('cfi_currency_symbol', sanitize_text_field($_POST['cfi_currency_symbol'] ?? '₦'));
+            update_option('cfi_business_name', sanitize_text_field($_POST['cfi_business_name'] ?? 'Chinemerem Foods'));
+            update_option('cfi_login_background_image', esc_url_raw($_POST['cfi_login_background_image'] ?? ''));
+            update_option('cfi_login_logo_image', esc_url_raw($_POST['cfi_login_logo_image'] ?? ''));
+            echo '<div class="notice notice-success"><p>' . esc_html__('Settings saved successfully!', 'chinemerem-foods') . '</p></div>';
+        }
+        
+        // Get current settings
+        $currency_symbol = get_option('cfi_currency_symbol', '₦');
+        $business_name = get_option('cfi_business_name', 'Chinemerem Foods');
+        $login_bg_image = get_option('cfi_login_background_image', '');
+        $login_logo = get_option('cfi_login_logo_image', '');
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Settings', 'chinemerem-foods'); ?></h1>
+            <h1><?php esc_html_e('Chinemerem Foods Settings', 'chinemerem-foods'); ?></h1>
             
             <div class="cfi-admin-settings">
-                <form method="post" action="options.php">
+                <form method="post" action="">
+                    <?php wp_nonce_field('cfi_settings_nonce'); ?>
+                    
+                    <h2><?php esc_html_e('General Settings', 'chinemerem-foods'); ?></h2>
                     <table class="form-table">
                         <tr>
                             <th scope="row"><?php esc_html_e('Currency Symbol', 'chinemerem-foods'); ?></th>
                             <td>
-                                <input type="text" name="cfi_currency_symbol" value="<?php echo esc_attr(get_option('cfi_currency_symbol', '₦')); ?>">
+                                <input type="text" name="cfi_currency_symbol" value="<?php echo esc_attr($currency_symbol); ?>" class="regular-text">
+                                <p class="description"><?php esc_html_e('Currency symbol to display (e.g., ₦, $, €)', 'chinemerem-foods'); ?></p>
                             </td>
                         </tr>
                         <tr>
                             <th scope="row"><?php esc_html_e('Business Name', 'chinemerem-foods'); ?></th>
                             <td>
-                                <input type="text" name="cfi_business_name" value="<?php echo esc_attr(get_option('cfi_business_name', 'Chinemerem Foods')); ?>" class="regular-text">
+                                <input type="text" name="cfi_business_name" value="<?php echo esc_attr($business_name); ?>" class="regular-text">
+                                <p class="description"><?php esc_html_e('Your business name displayed across the site', 'chinemerem-foods'); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <h2><?php esc_html_e('Login Page Customization', 'chinemerem-foods'); ?></h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Login Background Image', 'chinemerem-foods'); ?></th>
+                            <td>
+                                <div class="cfi-image-upload-wrapper">
+                                    <input type="text" name="cfi_login_background_image" id="cfi_login_background_image" value="<?php echo esc_attr($login_bg_image); ?>" class="regular-text" placeholder="<?php esc_attr_e('Select or enter image URL', 'chinemerem-foods'); ?>">
+                                    <button type="button" class="button cfi-upload-btn" data-target="cfi_login_background_image"><?php esc_html_e('Upload Image', 'chinemerem-foods'); ?></button>
+                                    <?php if ($login_bg_image) : ?>
+                                    <button type="button" class="button cfi-remove-btn" data-target="cfi_login_background_image"><?php esc_html_e('Remove', 'chinemerem-foods'); ?></button>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="description"><?php esc_html_e('Upload a full-width background image for the login page. Recommended size: 1920x1080px or larger.', 'chinemerem-foods'); ?></p>
+                                <?php if ($login_bg_image) : ?>
+                                <div class="cfi-image-preview" style="margin-top: 10px;">
+                                    <img src="<?php echo esc_url($login_bg_image); ?>" alt="Login Background Preview" style="max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                </div>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Login Logo Image', 'chinemerem-foods'); ?></th>
+                            <td>
+                                <div class="cfi-image-upload-wrapper">
+                                    <input type="text" name="cfi_login_logo_image" id="cfi_login_logo_image" value="<?php echo esc_attr($login_logo); ?>" class="regular-text" placeholder="<?php esc_attr_e('Select or enter logo URL', 'chinemerem-foods'); ?>">
+                                    <button type="button" class="button cfi-upload-btn" data-target="cfi_login_logo_image"><?php esc_html_e('Upload Logo', 'chinemerem-foods'); ?></button>
+                                    <?php if ($login_logo) : ?>
+                                    <button type="button" class="button cfi-remove-btn" data-target="cfi_login_logo_image"><?php esc_html_e('Remove', 'chinemerem-foods'); ?></button>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="description"><?php esc_html_e('Upload a custom logo for the login page. Recommended size: 200x200px. Leave empty to use default.', 'chinemerem-foods'); ?></p>
+                                <?php if ($login_logo) : ?>
+                                <div class="cfi-image-preview" style="margin-top: 10px;">
+                                    <img src="<?php echo esc_url($login_logo); ?>" alt="Login Logo Preview" style="max-width: 100px; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                </div>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     </table>
                     
                     <p class="submit">
-                        <button type="submit" class="button button-primary"><?php esc_html_e('Save Settings', 'chinemerem-foods'); ?></button>
+                        <button type="submit" name="cfi_save_settings" class="button button-primary button-hero"><?php esc_html_e('Save All Settings', 'chinemerem-foods'); ?></button>
                     </p>
                 </form>
+                
+                <hr style="margin: 30px 0;">
+                
+                <h2><?php esc_html_e('Page Management', 'chinemerem-foods'); ?></h2>
+                <p><?php esc_html_e('If any CFI pages are missing, click the button below to recreate them:', 'chinemerem-foods'); ?></p>
+                <form method="post" action="">
+                    <?php wp_nonce_field('cfi_recreate_pages_nonce'); ?>
+                    <button type="submit" name="cfi_recreate_pages" class="button button-secondary"><?php esc_html_e('Recreate Missing Pages', 'chinemerem-foods'); ?></button>
+                </form>
+                <?php
+                if (isset($_POST['cfi_recreate_pages']) && check_admin_referer('cfi_recreate_pages_nonce')) {
+                    $created = CFI_Pages::recreate_pages();
+                    echo '<div class="notice notice-success"><p>' . sprintf(esc_html__('%d pages created successfully!', 'chinemerem-foods'), $created) . '</p></div>';
+                }
+                ?>
             </div>
         </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            // Media uploader for image fields
+            $('.cfi-upload-btn').on('click', function(e) {
+                e.preventDefault();
+                var targetId = $(this).data('target');
+                var frame = wp.media({
+                    title: '<?php esc_html_e('Select Image', 'chinemerem-foods'); ?>',
+                    button: { text: '<?php esc_html_e('Use this image', 'chinemerem-foods'); ?>' },
+                    multiple: false
+                });
+                frame.on('select', function() {
+                    var attachment = frame.state().get('selection').first().toJSON();
+                    $('#' + targetId).val(attachment.url);
+                });
+                frame.open();
+            });
+            
+            // Remove image
+            $('.cfi-remove-btn').on('click', function(e) {
+                e.preventDefault();
+                var targetId = $(this).data('target');
+                $('#' + targetId).val('');
+                $(this).closest('td').find('.cfi-image-preview').remove();
+                $(this).remove();
+            });
+        });
+        </script>
         <?php
     }
 }
