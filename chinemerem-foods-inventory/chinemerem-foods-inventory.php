@@ -87,6 +87,12 @@ final class Chinemerem_Foods_Inventory {
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         
+        // Performance: Add resource hints for faster loading
+        add_action('wp_head', array($this, 'add_resource_hints'), 1);
+        
+        // Performance: Add preload directives
+        add_filter('wp_resource_hints', array($this, 'resource_hints'), 10, 2);
+        
         // Template redirect for login check
         add_action('template_redirect', array($this, 'check_authentication'));
         
@@ -96,6 +102,35 @@ final class Chinemerem_Foods_Inventory {
         
         // Add custom user role
         add_action('init', array($this, 'add_custom_roles'));
+    }
+    
+    /**
+     * Add resource hints for faster external resource loading
+     */
+    public function add_resource_hints() {
+        echo '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n";
+        echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+        echo '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>' . "\n";
+        echo '<link rel="dns-prefetch" href="https://fonts.googleapis.com">' . "\n";
+        echo '<link rel="dns-prefetch" href="https://fonts.gstatic.com">' . "\n";
+        echo '<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">' . "\n";
+    }
+    
+    /**
+     * Add preload resource hints
+     */
+    public function resource_hints($hints, $relation_type) {
+        if ('preconnect' === $relation_type) {
+            $hints[] = array(
+                'href' => 'https://fonts.googleapis.com',
+                'crossorigin' => 'anonymous',
+            );
+            $hints[] = array(
+                'href' => 'https://fonts.gstatic.com',
+                'crossorigin' => 'anonymous',
+            );
+        }
+        return $hints;
     }
 
     /**
@@ -188,18 +223,21 @@ final class Chinemerem_Foods_Inventory {
     }
 
     /**
-     * Enqueue frontend scripts and styles
+     * Enqueue frontend scripts and styles - Performance Optimized
      */
     public function enqueue_scripts() {
-        // Google Fonts
+        // Google Fonts - optimized with display=swap for faster text rendering
         wp_enqueue_style(
             'cfi-google-fonts',
-            'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
+            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
             array(),
             null
         );
         
-        // Font Awesome for icons - using kit or CDN with integrity
+        // Add font-display swap attribute
+        add_filter('style_loader_tag', array($this, 'add_font_display_swap'), 10, 2);
+        
+        // Font Awesome for icons - using minified CDN
         wp_enqueue_style(
             'font-awesome',
             'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
@@ -215,7 +253,7 @@ final class Chinemerem_Foods_Inventory {
             CFI_VERSION
         );
         
-        // Main JavaScript
+        // Main JavaScript - defer loading for non-blocking
         wp_enqueue_script(
             'cfi-main-script',
             CFI_PLUGIN_URL . 'assets/js/main.js',
@@ -224,7 +262,10 @@ final class Chinemerem_Foods_Inventory {
             true
         );
         
-        // Localize script
+        // Add defer attribute to scripts for faster page load
+        add_filter('script_loader_tag', array($this, 'add_defer_attribute'), 10, 2);
+        
+        // Localize script with minimal data for faster parsing
         wp_localize_script('cfi-main-script', 'cfiData', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('cfi_nonce'),
@@ -234,7 +275,7 @@ final class Chinemerem_Foods_Inventory {
             'userRole' => $this->get_user_role_display(),
         ));
         
-        // Service Worker for offline functionality
+        // Service Worker for offline functionality - async loading
         wp_enqueue_script(
             'cfi-sw-register',
             CFI_PLUGIN_URL . 'assets/js/sw-register.js',
@@ -242,6 +283,27 @@ final class Chinemerem_Foods_Inventory {
             CFI_VERSION,
             true
         );
+    }
+    
+    /**
+     * Add defer attribute to scripts for non-blocking loading
+     */
+    public function add_defer_attribute($tag, $handle) {
+        // Only defer our plugin scripts
+        if (strpos($handle, 'cfi-') === 0 && strpos($handle, 'cfi-main-script') !== false) {
+            return str_replace(' src', ' defer src', $tag);
+        }
+        return $tag;
+    }
+    
+    /**
+     * Add font-display swap for faster text rendering
+     */
+    public function add_font_display_swap($tag, $handle) {
+        if ($handle === 'cfi-google-fonts') {
+            return str_replace("rel='stylesheet'", "rel='stylesheet' media='print' onload=\"this.media='all'\"", $tag);
+        }
+        return $tag;
     }
 
     /**

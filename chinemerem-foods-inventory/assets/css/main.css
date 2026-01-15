@@ -4,10 +4,9 @@
  * Color Scheme:
  * - Primary: #001943 (Deep Navy Blue)
  * - Background: #ffffff (White)
+ * 
+ * Performance Optimized - Google Fonts loaded via PHP with preconnect
  */
-
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* Subtle Sparkle Animation */
 @keyframes subtle-sparkle {

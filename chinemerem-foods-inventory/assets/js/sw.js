@@ -1,30 +1,46 @@
 /**
- * Chinemerem Foods Service Worker
+ * Chinemerem Foods Service Worker - Performance Optimized
+ * Aggressive caching for blazing fast load times
  */
 
-const CACHE_NAME = 'cfi-cache-v1';
+const CACHE_NAME = 'cfi-cache-v2';
 const OFFLINE_URL = '/offline.html';
 
+// Static assets to cache immediately
 const STATIC_ASSETS = [
     '/',
     '/wp-content/plugins/chinemerem-foods-inventory/assets/css/main.css',
     '/wp-content/plugins/chinemerem-foods-inventory/assets/js/main.js',
-    '/wp-content/plugins/chinemerem-foods-inventory/assets/images/logo.svg',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+    '/wp-content/plugins/chinemerem-foods-inventory/assets/images/logo.svg'
 ];
 
-// Install event
+// External CDN assets to cache
+const CDN_ASSETS = [
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+];
+
+// Install event - precache critical assets
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            console.log('CFI: Caching static assets');
-            return cache.addAll(STATIC_ASSETS.filter(url => !url.startsWith('http')));
+            console.log('CFI: Precaching critical assets for fast loading');
+            // Cache local assets
+            const localPromise = cache.addAll(STATIC_ASSETS.filter(url => !url.startsWith('http')));
+            // Cache CDN assets with fetch
+            const cdnPromise = Promise.all(CDN_ASSETS.map(url => 
+                fetch(url, { mode: 'cors' })
+                    .then(response => cache.put(url, response))
+                    .catch(() => console.log('CFI: Could not cache CDN asset:', url))
+            ));
+            return Promise.all([localPromise, cdnPromise]);
         })
     );
+    // Activate immediately for faster updates
     self.skipWaiting();
 });
 
-// Activate event
+// Activate event - clean old caches
 self.addEventListener('activate', function(event) {
     event.waitUntil(
         caches.keys().then(function(cacheNames) {
@@ -37,50 +53,81 @@ self.addEventListener('activate', function(event) {
             );
         })
     );
+    // Take control of all pages immediately
     self.clients.claim();
 });
 
-// Fetch event
+// Fetch event - Cache-first strategy for speed
 self.addEventListener('fetch', function(event) {
     // Skip non-GET requests
     if (event.request.method !== 'GET') {
         return;
     }
 
-    // Skip admin requests
-    if (event.request.url.includes('/wp-admin/')) {
+    // Skip admin requests and AJAX
+    if (event.request.url.includes('/wp-admin/') || 
+        event.request.url.includes('admin-ajax.php')) {
         return;
     }
 
-    event.respondWith(
-        caches.match(event.request).then(function(response) {
-            if (response) {
-                return response;
-            }
+    // Use stale-while-revalidate for HTML pages (instant load + background update)
+    if (event.request.mode === 'navigate' || 
+        event.request.headers.get('accept').includes('text/html')) {
+        event.respondWith(
+            caches.match(event.request).then(function(cachedResponse) {
+                const fetchPromise = fetch(event.request).then(function(networkResponse) {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(event.request, responseToCache);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(function() {
+                    return cachedResponse || caches.match(OFFLINE_URL);
+                });
+                
+                // Return cached response immediately, update in background
+                return cachedResponse || fetchPromise;
+            })
+        );
+        return;
+    }
 
-            return fetch(event.request).then(function(response) {
-                // Don't cache non-successful responses
-                if (!response || response.status !== 200 || response.type !== 'basic') {
+    // Cache-first for static assets (CSS, JS, images)
+    if (event.request.url.includes('/assets/') || 
+        event.request.url.includes('.css') ||
+        event.request.url.includes('.js') ||
+        event.request.url.includes('.png') ||
+        event.request.url.includes('.jpg') ||
+        event.request.url.includes('.svg') ||
+        event.request.url.includes('.woff')) {
+        event.respondWith(
+            caches.match(event.request).then(function(response) {
+                if (response) {
                     return response;
                 }
-
-                // Clone the response
-                const responseToCache = response.clone();
-
-                // Cache static assets
-                if (event.request.url.includes('/assets/')) {
+                return fetch(event.request).then(function(response) {
+                    if (!response || response.status !== 200) {
+                        return response;
+                    }
+                    const responseToCache = response.clone();
                     caches.open(CACHE_NAME).then(function(cache) {
                         cache.put(event.request, responseToCache);
                     });
-                }
+                    return response;
+                });
+            })
+        );
+        return;
+    }
 
-                return response;
-            }).catch(function() {
-                // Return offline page for navigation requests
-                if (event.request.mode === 'navigate') {
-                    return caches.match(OFFLINE_URL);
-                }
-            });
+    // Network-first for API/dynamic content
+    event.respondWith(
+        fetch(event.request).then(function(response) {
+            return response;
+        }).catch(function() {
+            return caches.match(event.request);
         })
     );
 });
