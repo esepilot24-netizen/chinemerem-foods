@@ -1,0 +1,334 @@
+<?php
+/**
+ * Plugin Name: Chinemerem Foods Inventory Management
+ * Plugin URI: https://chinemeremfoods.com
+ * Description: A comprehensive inventory management system for Chinemerem Foods with glassmorphism UI, offline support, and real-time calculations.
+ * Version: 1.0.0
+ * Author: BendlessTech
+ * Author URI: https://bendlestech.com
+ * Text Domain: chinemerem-foods
+ * Domain Path: /languages
+ * Requires at least: 5.8
+ * Requires PHP: 7.4
+ */
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('CFI_VERSION', '1.0.0');
+define('CFI_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('CFI_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('CFI_PLUGIN_BASENAME', plugin_basename(__FILE__));
+
+/**
+ * Main Plugin Class
+ */
+final class Chinemerem_Foods_Inventory {
+    
+    /**
+     * Single instance of the class
+     */
+    private static $instance = null;
+
+    /**
+     * Get single instance
+     */
+    public static function get_instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Constructor
+     */
+    private function __construct() {
+        $this->load_dependencies();
+        $this->init_hooks();
+    }
+
+    /**
+     * Load required files
+     */
+    private function load_dependencies() {
+        // Core classes
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-database.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-auth.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-ajax.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-pages.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-products.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-orders.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-stock.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-debtors.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-expenses.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-imports.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-packing.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-financial.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-reconciliation.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-backup.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-shortcodes.php';
+        require_once CFI_PLUGIN_DIR . 'includes/class-cfi-admin.php';
+    }
+
+    /**
+     * Initialize hooks
+     */
+    private function init_hooks() {
+        // Register activation hook
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+
+        // Init actions
+        add_action('init', array($this, 'init'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
+        
+        // Template redirect for login check
+        add_action('template_redirect', array($this, 'check_authentication'));
+        
+        // Daily cron for reset and backup
+        add_action('cfi_daily_reset', array($this, 'daily_reset'));
+        add_action('cfi_daily_backup', array($this, 'daily_backup'));
+        
+        // Add custom user role
+        add_action('init', array($this, 'add_custom_roles'));
+    }
+
+    /**
+     * Plugin activation
+     */
+    public function activate() {
+        // Create database tables
+        CFI_Database::create_tables();
+        
+        // Create pages
+        CFI_Pages::create_pages();
+        
+        // Add custom roles
+        $this->add_custom_roles();
+        
+        // Schedule daily cron jobs
+        if (!wp_next_scheduled('cfi_daily_reset')) {
+            wp_schedule_event(strtotime('today 23:59:59'), 'daily', 'cfi_daily_reset');
+        }
+        if (!wp_next_scheduled('cfi_daily_backup')) {
+            wp_schedule_event(strtotime('today 23:00:00'), 'daily', 'cfi_daily_backup');
+        }
+        
+        // Flush rewrite rules
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Plugin deactivation
+     */
+    public function deactivate() {
+        // Clear scheduled cron jobs
+        wp_clear_scheduled_hook('cfi_daily_reset');
+        wp_clear_scheduled_hook('cfi_daily_backup');
+        
+        // Flush rewrite rules
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Initialize plugin
+     */
+    public function init() {
+        // Initialize classes
+        CFI_Auth::get_instance();
+        CFI_Ajax::get_instance();
+        CFI_Shortcodes::get_instance();
+        CFI_Admin::get_instance();
+    }
+
+    /**
+     * Add custom user roles
+     */
+    public function add_custom_roles() {
+        // Add CFI Staff role
+        add_role('cfi_staff', __('CFI Staff', 'chinemerem-foods'), array(
+            'read' => true,
+            'cfi_take_orders' => true,
+            'cfi_view_stock' => true,
+            'cfi_record_expenses' => true,
+        ));
+        
+        // Add CFI Admin role
+        add_role('cfi_admin', __('CFI Admin', 'chinemerem-foods'), array(
+            'read' => true,
+            'cfi_take_orders' => true,
+            'cfi_view_stock' => true,
+            'cfi_record_expenses' => true,
+            'cfi_manage_products' => true,
+            'cfi_manage_debtors' => true,
+            'cfi_manage_users' => true,
+            'cfi_reconcile' => true,
+            'cfi_view_reports' => true,
+        ));
+        
+        // Add capabilities to administrator
+        $admin = get_role('administrator');
+        if ($admin) {
+            $admin->add_cap('cfi_take_orders');
+            $admin->add_cap('cfi_view_stock');
+            $admin->add_cap('cfi_record_expenses');
+            $admin->add_cap('cfi_manage_products');
+            $admin->add_cap('cfi_manage_debtors');
+            $admin->add_cap('cfi_manage_users');
+            $admin->add_cap('cfi_reconcile');
+            $admin->add_cap('cfi_view_reports');
+            $admin->add_cap('cfi_super_admin');
+            $admin->add_cap('cfi_manage_history');
+        }
+    }
+
+    /**
+     * Enqueue frontend scripts and styles
+     */
+    public function enqueue_scripts() {
+        // Google Fonts
+        wp_enqueue_style(
+            'cfi-google-fonts',
+            'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
+            array(),
+            null
+        );
+        
+        // Font Awesome for icons - using kit or CDN with integrity
+        wp_enqueue_style(
+            'font-awesome',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+            array(),
+            '6.5.1'
+        );
+        
+        // Main stylesheet
+        wp_enqueue_style(
+            'cfi-main-style',
+            CFI_PLUGIN_URL . 'assets/css/main.css',
+            array('font-awesome'),
+            CFI_VERSION
+        );
+        
+        // Main JavaScript
+        wp_enqueue_script(
+            'cfi-main-script',
+            CFI_PLUGIN_URL . 'assets/js/main.js',
+            array('jquery'),
+            CFI_VERSION,
+            true
+        );
+        
+        // Localize script
+        wp_localize_script('cfi-main-script', 'cfiData', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('cfi_nonce'),
+            'pluginUrl' => CFI_PLUGIN_URL,
+            'isLoggedIn' => is_user_logged_in(),
+            'currentUser' => wp_get_current_user()->display_name,
+            'userRole' => $this->get_user_role_display(),
+        ));
+        
+        // Service Worker for offline functionality
+        wp_enqueue_script(
+            'cfi-sw-register',
+            CFI_PLUGIN_URL . 'assets/js/sw-register.js',
+            array(),
+            CFI_VERSION,
+            true
+        );
+    }
+
+    /**
+     * Enqueue admin scripts and styles
+     */
+    public function admin_enqueue_scripts($hook) {
+        // Only on CFI admin pages
+        if (strpos($hook, 'cfi-') === false && strpos($hook, 'chinemerem') === false) {
+            return;
+        }
+        
+        wp_enqueue_style(
+            'cfi-admin-style',
+            CFI_PLUGIN_URL . 'assets/css/admin.css',
+            array(),
+            CFI_VERSION
+        );
+        
+        wp_enqueue_script(
+            'cfi-admin-script',
+            CFI_PLUGIN_URL . 'assets/js/admin.js',
+            array('jquery'),
+            CFI_VERSION,
+            true
+        );
+    }
+
+    /**
+     * Check authentication for plugin pages
+     */
+    public function check_authentication() {
+        global $post;
+        
+        if (!$post) {
+            return;
+        }
+        
+        // List of CFI pages that require authentication
+        $cfi_pages = CFI_Pages::get_page_slugs();
+        
+        if (in_array($post->post_name, $cfi_pages) && $post->post_name !== 'cfi-login') {
+            if (!is_user_logged_in()) {
+                $login_page = get_page_by_path('cfi-login');
+                if ($login_page) {
+                    wp_redirect(get_permalink($login_page->ID));
+                    exit;
+                }
+            }
+        }
+    }
+
+    /**
+     * Daily reset function
+     */
+    public function daily_reset() {
+        CFI_Stock::daily_reset();
+        CFI_Financial::daily_reset();
+        CFI_Orders::daily_reset();
+    }
+
+    /**
+     * Daily backup function
+     */
+    public function daily_backup() {
+        CFI_Backup::create_daily_backup();
+    }
+
+    /**
+     * Get user role display name
+     */
+    private function get_user_role_display() {
+        $user = wp_get_current_user();
+        if (in_array('administrator', $user->roles)) {
+            return __('Super Admin', 'chinemerem-foods');
+        } elseif (in_array('cfi_admin', $user->roles)) {
+            return __('Admin', 'chinemerem-foods');
+        } elseif (in_array('cfi_staff', $user->roles)) {
+            return __('Staff', 'chinemerem-foods');
+        }
+        return __('Guest', 'chinemerem-foods');
+    }
+}
+
+// Initialize the plugin
+function cfi_init() {
+    return Chinemerem_Foods_Inventory::get_instance();
+}
+
+// Start the plugin
+add_action('plugins_loaded', 'cfi_init');

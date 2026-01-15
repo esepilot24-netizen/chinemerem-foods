@@ -1,0 +1,673 @@
+<?php
+/**
+ * Take Order Page Template - REBUILT WITH RECEIPT PRINTING & CUSTOMER NAME
+ * Uses direct form POST for reliability
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Ensure database tables exist
+CFI_Database::create_tables();
+
+$message = '';
+$message_type = '';
+$receipt_data = null;
+
+// Process order submission
+if (isset($_POST['cfi_submit_order']) && wp_verify_nonce($_POST['cfi_order_nonce'], 'cfi_take_order')) {
+    global $wpdb;
+    
+    $payment_method = sanitize_text_field($_POST['payment_method']);
+    $customer_name = sanitize_text_field($_POST['customer_name']);
+    $transfer_amount = floatval($_POST['transfer_amount']);
+    $cash_amount = floatval($_POST['cash_amount']);
+    $bank_name = sanitize_text_field($_POST['bank_name']);
+    $items = isset($_POST['items']) ? $_POST['items'] : array();
+    
+    // Validate customer name for transfer payments
+    if ($payment_method === 'transfer' && empty($customer_name)) {
+        $message = 'Customer name is required for transfer/card payments!';
+        $message_type = 'error';
+    } else {
+        $order_items = array();
+        $total_qty = 0;
+        $total_amount = 0;
+        $total_discount = 0;
+        
+        foreach ($items as $item) {
+            $product_id = intval($item['product_id']);
+            $quantity = floatval($item['quantity']);
+            $discount = floatval($item['discount']);
+            
+            if ($quantity > 0 && $product_id > 0) {
+                $product = CFI_Products::get($product_id);
+                if ($product) {
+                    $item_total = ($product->price * $quantity) - $discount;
+                    $total_qty += $quantity;
+                    $total_amount += ($product->price * $quantity);
+                    $total_discount += $discount;
+                    $order_items[] = array(
+                        'product_id' => $product_id,
+                        'product_name' => $product->name,
+                        'price' => $product->price,
+                        'quantity' => $quantity,
+                        'discount' => $discount,
+                        'total' => $item_total
+                    );
+                }
+            }
+        }
+        
+        if (empty($order_items)) {
+            $message = 'Please add at least one item to the order!';
+            $message_type = 'error';
+        } else {
+            $grand_total = $total_amount - $total_discount;
+            $order_number = 'ORD-' . date('Ymd') . '-' . substr(uniqid(), -6);
+            
+            // Insert order
+            $orders_table = $wpdb->prefix . 'cfi_orders';
+            $result = $wpdb->insert(
+                $orders_table,
+                array(
+                    'order_number' => $order_number,
+                    'order_type' => 'cash',
+                    'customer_name' => $customer_name,
+                    'total_quantity' => $total_qty,
+                    'total_amount' => $total_amount,
+                    'discount_amount' => $total_discount,
+                    'grand_total' => $grand_total,
+                    'payment_method' => $payment_method,
+                    'transfer_amount' => $transfer_amount,
+                    'cash_amount' => $cash_amount,
+                    'bank_name' => $bank_name,
+                    'staff_id' => get_current_user_id(),
+                    'order_date' => current_time('Y-m-d'),
+                    'order_time' => current_time('H:i:s'),
+                    'status' => 'completed'
+                ),
+                array('%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%f', '%f', '%s', '%d', '%s', '%s', '%s')
+            );
+            
+            if ($result) {
+                $order_id = $wpdb->insert_id;
+                
+                // Insert order items
+                $items_table = $wpdb->prefix . 'cfi_order_items';
+                foreach ($order_items as $item) {
+                    $wpdb->insert(
+                        $items_table,
+                        array(
+                            'order_id' => $order_id,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['quantity'],
+                            'price' => $item['price'],
+                            'discount' => $item['discount'],
+                            'total' => $item['total']
+                        ),
+                        array('%d', '%d', '%f', '%f', '%f', '%f')
+                    );
+                }
+                
+                // Record transfer if applicable
+                if ($transfer_amount > 0) {
+                    $transfer_table = $wpdb->prefix . 'cfi_transfers';
+                    $wpdb->insert(
+                        $transfer_table,
+                        array(
+                            'source_type' => 'order',
+                            'source_id' => $order_id,
+                            'customer_name' => $customer_name,
+                            'amount' => $transfer_amount,
+                            'bank_name' => $bank_name,
+                            'staff_id' => get_current_user_id(),
+                            'transfer_date' => current_time('Y-m-d'),
+                            'transfer_time' => current_time('H:i:s')
+                        ),
+                        array('%s', '%d', '%s', '%f', '%s', '%d', '%s', '%s')
+                    );
+                }
+                
+                // Update financial summary
+                CFI_Financial::update_daily_summary(current_time('Y-m-d'));
+                
+                // Prepare receipt data
+                $receipt_data = array(
+                    'order_number' => $order_number,
+                    'date' => current_time('d/m/Y'),
+                    'time' => current_time('H:i'),
+                    'customer_name' => $customer_name,
+                    'items' => $order_items,
+                    'total_qty' => $total_qty,
+                    'subtotal' => $total_amount,
+                    'discount' => $total_discount,
+                    'grand_total' => $grand_total,
+                    'payment_method' => $payment_method,
+                    'transfer_amount' => $transfer_amount,
+                    'cash_amount' => $cash_amount,
+                    'bank_name' => $bank_name,
+                    'staff' => wp_get_current_user()->display_name
+                );
+                
+                $message = 'Order submitted successfully! Order #' . $order_number;
+                $message_type = 'success';
+            } else {
+                $message = 'Failed to save order. Please try again.';
+                $message_type = 'error';
+            }
+        }
+    }
+}
+
+// Get products
+$products = CFI_Products::get_all();
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; min-height: 100vh; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        
+        .page-header {
+            background: linear-gradient(135deg, #001943, #002960);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-header h1 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .header-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #001943; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-outline { background: white; border: 2px solid #001943; color: #001943; }
+        .btn-print { background: #7c3aed; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn-lg { padding: 1rem 1.5rem; font-size: 1rem; }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        
+        .glass {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,25,67,0.1);
+            border: 2px solid rgba(0,25,67,0.1);
+            margin-bottom: 1.5rem;
+        }
+        .glass h3 { color: #001943; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001943; font-size: 0.85rem; }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-input:focus { outline: none; border-color: #001943; }
+        .form-input.required { border-color: #dc2626; }
+        
+        .table-wrapper { overflow-x: auto; margin: 0 -0.5rem; }
+        .order-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
+        .order-table th { background: #001943; color: white; padding: 0.75rem 0.5rem; text-align: left; white-space: nowrap; }
+        .order-table td { padding: 0.5rem; border-bottom: 1px solid #e2e8f0; }
+        .order-table input { width: 70px; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; }
+        .order-table .product-name { font-weight: 600; color: #001943; }
+        .order-table .price { color: #001943; font-weight: 500; }
+        .order-table .row-total { font-weight: 600; color: #16a34a; }
+        
+        .order-summary {
+            background: linear-gradient(135deg, #001943, #002960);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .summary-item { text-align: center; }
+        .summary-label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem; }
+        .summary-value { font-size: 1.25rem; font-weight: 700; }
+        .summary-value.grand { font-size: 1.75rem; color: #4ade80; }
+        
+        .payment-section { margin-top: 1.5rem; }
+        .payment-methods { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .payment-method {
+            flex: 1;
+            min-width: 120px;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        .payment-method:hover { border-color: #001943; }
+        .payment-method.selected { border-color: #001943; background: rgba(0,25,67,0.05); }
+        .payment-method i { display: block; font-size: 1.5rem; color: #001943; margin-bottom: 0.5rem; }
+        .payment-method span { font-weight: 600; color: #001943; font-size: 0.85rem; }
+        
+        .bank-options, .customer-name-group { display: none; margin: 1rem 0; }
+        .bank-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+        .bank-option input { width: auto; }
+        
+        .payment-amounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .checkbox-group input { width: 20px; height: 20px; }
+        .checkbox-group span { font-weight: 500; color: #001943; }
+        
+        /* Receipt Modal */
+        .receipt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .receipt-content {
+            background: white;
+            max-width: 400px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .receipt-header {
+            background: #001943;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .receipt-body { padding: 1.5rem; }
+        .receipt-company { text-align: center; margin-bottom: 1rem; border-bottom: 2px dashed #e2e8f0; padding-bottom: 1rem; }
+        .receipt-company h2 { color: #001943; margin: 0 0 0.25rem 0; }
+        .receipt-company p { color: #64748b; font-size: 0.8rem; margin: 0; }
+        .receipt-info { margin-bottom: 1rem; font-size: 0.85rem; }
+        .receipt-info p { margin: 0.25rem 0; display: flex; justify-content: space-between; }
+        .receipt-items { border-top: 1px dashed #e2e8f0; border-bottom: 1px dashed #e2e8f0; padding: 0.5rem 0; margin: 0.5rem 0; }
+        .receipt-item { display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.8rem; }
+        .receipt-item .name { flex: 1; }
+        .receipt-item .qty { width: 40px; text-align: center; }
+        .receipt-item .price { width: 80px; text-align: right; font-weight: 600; }
+        .receipt-totals { margin-top: 0.5rem; font-size: 0.85rem; }
+        .receipt-totals p { display: flex; justify-content: space-between; margin: 0.25rem 0; }
+        .receipt-totals .grand { font-size: 1.1rem; font-weight: 700; color: #001943; border-top: 2px solid #001943; padding-top: 0.5rem; margin-top: 0.5rem; }
+        .receipt-footer { text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed #e2e8f0; font-size: 0.75rem; color: #64748b; }
+        .receipt-actions { display: flex; gap: 0.5rem; padding: 1rem; background: #f1f5f9; }
+        .receipt-actions .btn { flex: 1; justify-content: center; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .receipt-body, .receipt-body * { visibility: visible; }
+            .receipt-body { position: absolute; left: 0; top: 0; width: 80mm; }
+        }
+        
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; text-align: center; }
+            .order-table { font-size: 0.75rem; }
+            .order-table input { width: 50px; padding: 0.3rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1><i class="fas fa-cart-plus"></i> Take Order</h1>
+        <div class="header-buttons">
+            <a href="/order-history/" class="btn btn-outline" style="background: white;">
+                <i class="fas fa-history"></i> Order History
+            </a>
+            <a href="/transfer-history/" class="btn btn-outline" style="background: white;">
+                <i class="fas fa-exchange-alt"></i> Transfer History
+            </a>
+        </div>
+    </div>
+    
+    <?php if ($message) : ?>
+    <div class="alert alert-<?php echo esc_attr($message_type); ?>">
+        <i class="fas fa-<?php echo $message_type === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
+        <?php echo esc_html($message); ?>
+    </div>
+    <?php endif; ?>
+    
+    <form method="POST" id="order-form">
+        <?php wp_nonce_field('cfi_take_order', 'cfi_order_nonce'); ?>
+        <input type="hidden" name="payment_method" id="payment-method" value="cash">
+        
+        <div class="glass">
+            <h3><i class="fas fa-shopping-cart"></i> Order Items</h3>
+            
+            <div class="table-wrapper">
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Price (₦)</th>
+                            <th>Qty</th>
+                            <th>Disc (₦)</th>
+                            <th>Total (₦)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($products as $idx => $product) : ?>
+                        <tr class="order-row" data-price="<?php echo esc_attr($product->price); ?>">
+                            <td class="product-name">
+                                <?php echo esc_html($product->name); ?>
+                                <input type="hidden" name="items[<?php echo $idx; ?>][product_id]" value="<?php echo esc_attr($product->id); ?>">
+                            </td>
+                            <td class="price"><?php echo number_format($product->price, 0); ?></td>
+                            <td>
+                                <input type="number" name="items[<?php echo $idx; ?>][quantity]" class="qty-input" value="0" min="0" step="0.5" onchange="calculateRow(this)">
+                            </td>
+                            <td>
+                                <input type="number" name="items[<?php echo $idx; ?>][discount]" class="disc-input" value="0" min="0" step="1" onchange="calculateRow(this)">
+                            </td>
+                            <td class="row-total">0</td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="order-summary">
+                <div class="summary-item">
+                    <div class="summary-label">Total Qty</div>
+                    <div class="summary-value" id="total-qty">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Subtotal</div>
+                    <div class="summary-value" id="subtotal">₦0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Discount</div>
+                    <div class="summary-value" id="total-discount">₦0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Grand Total</div>
+                    <div class="summary-value grand" id="grand-total">₦0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass payment-section">
+            <h3><i class="fas fa-credit-card"></i> Payment Method</h3>
+            
+            <div class="payment-methods">
+                <div class="payment-method" data-method="transfer" onclick="selectPayment(this)">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Transfer/Card</span>
+                </div>
+                <div class="payment-method selected" data-method="cash" onclick="selectPayment(this)">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Cash</span>
+                </div>
+            </div>
+            
+            <!-- Customer Name (Required for Transfer) -->
+            <div class="customer-name-group" id="customer-name-group">
+                <div class="form-group">
+                    <label for="customer_name"><i class="fas fa-user"></i> Customer Name <span style="color: #dc2626;">*</span> (Required for Transfer)</label>
+                    <input type="text" id="customer_name" name="customer_name" class="form-input" placeholder="Enter customer name for transfer...">
+                </div>
+            </div>
+            
+            <div class="bank-options" id="bank-options">
+                <label class="bank-option">
+                    <input type="radio" name="bank_name" value="Moniepoint MFB" checked>
+                    <span>Moniepoint MFB</span>
+                </label>
+                <label class="bank-option">
+                    <input type="radio" name="bank_name" value="Access Bank PLC">
+                    <span>Access Bank PLC</span>
+                </label>
+            </div>
+            
+            <div class="payment-amounts">
+                <div class="form-group" id="transfer-group" style="display: none;">
+                    <label>Transfer Amount (₦)</label>
+                    <input type="number" id="transfer_amount" name="transfer_amount" class="form-input" value="0" min="0" step="0.01">
+                </div>
+                <div class="form-group" id="cash-group">
+                    <label>Cash Amount (₦)</label>
+                    <input type="number" id="cash_amount" name="cash_amount" class="form-input" value="0" min="0" step="0.01">
+                </div>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="confirm-payment" required>
+                <span>I confirm that payment has been received</span>
+            </div>
+            
+            <button type="submit" name="cfi_submit_order" class="btn btn-success btn-lg" style="width: 100%;">
+                <i class="fas fa-check-circle"></i> Submit Order
+            </button>
+        </div>
+    </form>
+</div>
+
+<?php if ($receipt_data) : ?>
+<!-- Receipt Modal -->
+<div class="receipt-modal" id="receipt-modal">
+    <div class="receipt-content">
+        <div class="receipt-header">
+            <h3><i class="fas fa-receipt"></i> Receipt</h3>
+            <button onclick="closeReceipt()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div class="receipt-body" id="receipt-print-area">
+            <div class="receipt-company">
+                <h2>Chinemerem Foods</h2>
+                <p>Inventory Management System</p>
+            </div>
+            
+            <div class="receipt-info">
+                <p><span>Order #:</span> <strong><?php echo esc_html($receipt_data['order_number']); ?></strong></p>
+                <p><span>Date:</span> <?php echo esc_html($receipt_data['date']); ?></p>
+                <p><span>Time:</span> <?php echo esc_html($receipt_data['time']); ?></p>
+                <?php if (!empty($receipt_data['customer_name'])) : ?>
+                <p><span>Customer:</span> <?php echo esc_html($receipt_data['customer_name']); ?></p>
+                <?php endif; ?>
+                <p><span>Staff:</span> <?php echo esc_html($receipt_data['staff']); ?></p>
+            </div>
+            
+            <div class="receipt-items">
+                <div class="receipt-item" style="font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; margin-bottom: 0.25rem;">
+                    <span class="name">Item</span>
+                    <span class="qty">Qty</span>
+                    <span class="price">Amount</span>
+                </div>
+                <?php foreach ($receipt_data['items'] as $item) : ?>
+                <div class="receipt-item">
+                    <span class="name"><?php echo esc_html($item['product_name']); ?></span>
+                    <span class="qty"><?php echo esc_html($item['quantity']); ?></span>
+                    <span class="price">₦<?php echo number_format($item['total'], 0); ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="receipt-totals">
+                <p><span>Subtotal:</span> <span>₦<?php echo number_format($receipt_data['subtotal'], 0); ?></span></p>
+                <?php if ($receipt_data['discount'] > 0) : ?>
+                <p><span>Discount:</span> <span>-₦<?php echo number_format($receipt_data['discount'], 0); ?></span></p>
+                <?php endif; ?>
+                <p class="grand"><span>Grand Total:</span> <span>₦<?php echo number_format($receipt_data['grand_total'], 0); ?></span></p>
+                <p><span>Payment:</span> <span><?php echo ucfirst($receipt_data['payment_method']); ?></span></p>
+                <?php if ($receipt_data['transfer_amount'] > 0) : ?>
+                <p><span>Transfer:</span> <span>₦<?php echo number_format($receipt_data['transfer_amount'], 0); ?></span></p>
+                <?php endif; ?>
+                <?php if ($receipt_data['cash_amount'] > 0) : ?>
+                <p><span>Cash:</span> <span>₦<?php echo number_format($receipt_data['cash_amount'], 0); ?></span></p>
+                <?php endif; ?>
+            </div>
+            
+            <div class="receipt-footer">
+                <p>Thank you for your patronage!</p>
+                <p>Powered by BendlessTech</p>
+            </div>
+        </div>
+        <div class="receipt-actions">
+            <button onclick="printReceipt()" class="btn btn-print">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button onclick="closeReceipt()" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Order
+            </button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+function calculateRow(input) {
+    var row = input.closest('.order-row');
+    var price = parseFloat(row.dataset.price) || 0;
+    var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    var disc = parseFloat(row.querySelector('.disc-input').value) || 0;
+    var total = (price * qty) - disc;
+    if (total < 0) total = 0;
+    row.querySelector('.row-total').textContent = total.toLocaleString();
+    calculateTotals();
+}
+
+function calculateTotals() {
+    var rows = document.querySelectorAll('.order-row');
+    var totalQty = 0;
+    var subtotal = 0;
+    var totalDisc = 0;
+    
+    rows.forEach(function(row) {
+        var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        var disc = parseFloat(row.querySelector('.disc-input').value) || 0;
+        var price = parseFloat(row.dataset.price) || 0;
+        totalQty += qty;
+        subtotal += (price * qty);
+        totalDisc += disc;
+    });
+    
+    var grandTotal = subtotal - totalDisc;
+    
+    document.getElementById('total-qty').textContent = totalQty;
+    document.getElementById('subtotal').textContent = '₦' + subtotal.toLocaleString();
+    document.getElementById('total-discount').textContent = '₦' + totalDisc.toLocaleString();
+    document.getElementById('grand-total').textContent = '₦' + grandTotal.toLocaleString();
+    
+    // Auto-fill payment amount
+    var method = document.getElementById('payment-method').value;
+    if (method === 'transfer') {
+        document.getElementById('transfer_amount').value = grandTotal;
+        document.getElementById('cash_amount').value = 0;
+    } else {
+        document.getElementById('cash_amount').value = grandTotal;
+        document.getElementById('transfer_amount').value = 0;
+    }
+}
+
+function selectPayment(el) {
+    document.querySelectorAll('.payment-method').forEach(function(m) { m.classList.remove('selected'); });
+    el.classList.add('selected');
+    var method = el.dataset.method;
+    document.getElementById('payment-method').value = method;
+    
+    document.getElementById('transfer-group').style.display = (method === 'transfer') ? 'block' : 'none';
+    document.getElementById('cash-group').style.display = (method === 'cash') ? 'block' : 'none';
+    document.getElementById('bank-options').style.display = (method === 'transfer') ? 'block' : 'none';
+    document.getElementById('customer-name-group').style.display = (method === 'transfer') ? 'block' : 'none';
+    
+    calculateTotals();
+}
+
+function printReceipt() {
+    var printContents = document.getElementById('receipt-print-area').innerHTML;
+    var originalContents = document.body.innerHTML;
+    document.body.innerHTML = '<div style="width: 80mm; margin: 0 auto; font-family: Arial, sans-serif; font-size: 12px;">' + printContents + '</div>';
+    window.print();
+    document.body.innerHTML = originalContents;
+    location.reload();
+}
+
+function closeReceipt() {
+    document.getElementById('receipt-modal').style.display = 'none';
+    location.reload();
+}
+
+// Form validation
+document.getElementById('order-form').addEventListener('submit', function(e) {
+    var method = document.getElementById('payment-method').value;
+    var customerName = document.getElementById('customer_name').value.trim();
+    
+    if (method === 'transfer' && !customerName) {
+        e.preventDefault();
+        alert('Customer name is required for transfer/card payments!');
+        document.getElementById('customer_name').classList.add('required');
+        document.getElementById('customer_name').focus();
+        return false;
+    }
+});
+</script>
+</body>
+</html>
