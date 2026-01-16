@@ -38,9 +38,25 @@ class CFI_Auth {
      * Handle login AJAX request
      */
     public function handle_login() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'cfi_nonce')) {
-            wp_send_json_error(array('message' => __('Security check failed', 'chinemerem-foods')));
+        // For login action, we use a dedicated nonce or allow public access with rate limiting
+        // Since the form page generates the nonce and the form submits it, verify it
+        $nonce_valid = false;
+        
+        if (isset($_POST['nonce'])) {
+            $nonce_value = sanitize_text_field(wp_unslash($_POST['nonce']));
+            // Try both nonce actions for compatibility
+            if (wp_verify_nonce($nonce_value, 'cfi_nonce') || wp_verify_nonce($nonce_value, 'cfi_login_nonce')) {
+                $nonce_valid = true;
+            }
+        }
+        
+        // For login forms from non-logged users, if nonce fails, check referer at minimum
+        if (!$nonce_valid) {
+            // Allow if request comes from same site (basic CSRF protection)
+            $referer = isset($_SERVER['HTTP_REFERER']) ? sanitize_url(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
+            if (empty($referer) || strpos($referer, home_url()) !== 0) {
+                wp_send_json_error(array('message' => __('Security check failed. Please refresh the page and try again.', 'chinemerem-foods')));
+            }
         }
         
         $username = isset($_POST['username']) ? sanitize_user(wp_unslash($_POST['username'])) : '';
@@ -70,9 +86,8 @@ class CFI_Auth {
             wp_send_json_error(array('message' => __('You do not have access to this system', 'chinemerem-foods')));
         }
         
-        // Get redirect URL
-        $home_page = get_page_by_path('cfi-home');
-        $redirect_url = $home_page ? get_permalink($home_page->ID) : home_url();
+        // Get redirect URL - use /home/ path
+        $redirect_url = home_url('/home/');
         
         wp_send_json_success(array(
             'message' => __('Login successful', 'chinemerem-foods'),

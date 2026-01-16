@@ -170,26 +170,27 @@ $bg_style = $login_bg_image
     
     .cfi-input-wrapper i.input-icon {
         position: absolute;
-        left: 0.85rem;
+        left: 1rem;
         top: 50%;
         transform: translateY(-50%);
         color: #94a3b8;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: color 0.3s;
         pointer-events: none;
         z-index: 1;
+        width: 16px;
+        text-align: center;
     }
     
     .cfi-form-input {
         width: 100%;
-        padding: 0.95rem 1rem 0.95rem 3rem;
+        padding: 0.95rem 1rem 0.95rem 2.75rem;
         border: 2px solid #e2e8f0;
         border-radius: 12px;
         font-size: 1rem;
         font-family: inherit;
         transition: all 0.3s;
         background: #f8fafc;
-        text-indent: 0.25rem;
     }
     
     .cfi-form-input::placeholder {
@@ -526,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('username', username);
             formData.append('password', password);
             formData.append('remember', remember ? '1' : '0');
-            formData.append('nonce', '<?php echo esc_js(wp_create_nonce('cfi_nonce')); ?>');
+            formData.append('nonce', '<?php echo esc_js(wp_create_nonce('cfi_login_nonce')); ?>');
             
             fetch('<?php echo esc_js(admin_url('admin-ajax.php')); ?>', {
                 method: 'POST',
