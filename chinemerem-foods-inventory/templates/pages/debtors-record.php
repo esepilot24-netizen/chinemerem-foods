@@ -26,7 +26,13 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
         $message_type = 'error';
     } else {
         global $wpdb;
-        $debtor = CFI_Debtors::get($debtor_id);
+        
+        // Get FRESH debtor data directly from database
+        $debtors_table = $wpdb->prefix . 'cfi_debtors';
+        $debtor = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $debtors_table WHERE id = %d",
+            $debtor_id
+        ));
         
         if ($debtor) {
             $total_amount = 0;
@@ -109,18 +115,15 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                     );
                 }
                 
-                // Update debtor balance
-                $balance_before = $debtor->total_debt;
+                // Update debtor balance - use direct query for reliability
+                $balance_before = floatval($debtor->total_debt);
                 $new_balance = $balance_before + $total_amount;
                 
-                $debtors_table = $wpdb->prefix . 'cfi_debtors';
-                $wpdb->update(
-                    $debtors_table,
-                    array('total_debt' => $new_balance),
-                    array('id' => $debtor_id),
-                    array('%f'),
-                    array('%d')
-                );
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE $debtors_table SET total_debt = %f WHERE id = %d",
+                    $new_balance,
+                    $debtor_id
+                ));
                 
                 // Record transaction history
                 $trans_table = $wpdb->prefix . 'cfi_debtor_transactions';
@@ -144,7 +147,8 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                 // Update financial summary
                 CFI_Financial::update_daily_summary(current_time('Y-m-d'));
                 
-                // Prepare receipt data for printing
+                // Store receipt data in session or use query params for redirect
+                // For simplicity, we'll show the receipt and then redirect happens when user clicks Done
                 $receipt_data = array(
                     'order_number' => $order_number,
                     'date' => current_time('d/m/Y'),
@@ -158,6 +162,14 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                 
                 $message = 'Order added to ' . esc_html($debtor->name) . '\'s debt. New balance: ₦' . number_format($new_balance, 2);
                 $message_type = 'success';
+                
+                // Store that we need to redirect after receipt
+                $redirect_after_receipt = add_query_arg(array(
+                    'order_success' => '1',
+                    'debtor_name' => urlencode($debtor->name),
+                    'order_total' => $total_amount,
+                    'new_balance' => $new_balance
+                ), remove_query_arg(array('debtor', 'action')));
             } else {
                 $message = 'Invalid order - no valid items';
                 $message_type = 'error';
@@ -167,6 +179,15 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
             $message_type = 'error';
         }
     }
+}
+
+// Check for order success redirect message
+if (isset($_GET['order_success']) && $_GET['order_success'] === '1') {
+    $debtor_name = isset($_GET['debtor_name']) ? urldecode($_GET['debtor_name']) : '';
+    $order_total = isset($_GET['order_total']) ? floatval($_GET['order_total']) : 0;
+    $new_balance = isset($_GET['new_balance']) ? floatval($_GET['new_balance']) : 0;
+    $message = 'Order of ₦' . number_format($order_total, 2) . ' added to ' . esc_html($debtor_name) . '\'s debt. New balance: ₦' . number_format($new_balance, 2);
+    $message_type = 'success';
 }
 
 // Process Clear Debt Form
@@ -185,25 +206,28 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
         $message_type = 'error';
     } else {
         global $wpdb;
-        $debtor = CFI_Debtors::get($debtor_id);
+        
+        // Get FRESH debtor data directly from database
+        $debtors_table = $wpdb->prefix . 'cfi_debtors';
+        $debtor = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $debtors_table WHERE id = %d",
+            $debtor_id
+        ));
         
         if ($debtor) {
             if ($total_payment > $debtor->total_debt) {
                 $message = 'Payment amount exceeds outstanding debt';
                 $message_type = 'error';
             } else {
-                $balance_before = $debtor->total_debt;
+                $balance_before = floatval($debtor->total_debt);
                 $new_balance = $balance_before - $total_payment;
                 
-                // Update debtor balance
-                $debtors_table = $wpdb->prefix . 'cfi_debtors';
-                $wpdb->update(
-                    $debtors_table,
-                    array('total_debt' => $new_balance),
-                    array('id' => $debtor_id),
-                    array('%f'),
-                    array('%d')
-                );
+                // Update debtor balance - use direct query for reliability
+                $update_result = $wpdb->query($wpdb->prepare(
+                    "UPDATE $debtors_table SET total_debt = %f WHERE id = %d",
+                    $new_balance,
+                    $debtor_id
+                ));
                 
                 // Record transaction history
                 $trans_table = $wpdb->prefix . 'cfi_debtor_transactions';
@@ -250,14 +274,31 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
                 // Update financial summary to include debtor payments
                 CFI_Financial::update_daily_summary(current_time('Y-m-d'));
                 
-                $message = 'Payment of ₦' . number_format($total_payment, 2) . ' recorded for ' . esc_html($debtor->name) . '. New balance: ₦' . number_format($new_balance, 2);
-                $message_type = 'success';
+                // Redirect to debtors list with success message to prevent form resubmission and show fresh data
+                $redirect_url = add_query_arg(array(
+                    'payment_success' => '1',
+                    'debtor_name' => urlencode($debtor->name),
+                    'payment_amount' => $total_payment,
+                    'new_balance' => $new_balance
+                ), remove_query_arg(array('debtor', 'action')));
+                
+                wp_redirect($redirect_url);
+                exit;
             }
         } else {
             $message = 'Debtor not found';
             $message_type = 'error';
         }
     }
+}
+
+// Check for payment success redirect message
+if (isset($_GET['payment_success']) && $_GET['payment_success'] === '1') {
+    $debtor_name = isset($_GET['debtor_name']) ? urldecode($_GET['debtor_name']) : '';
+    $payment_amount = isset($_GET['payment_amount']) ? floatval($_GET['payment_amount']) : 0;
+    $new_balance = isset($_GET['new_balance']) ? floatval($_GET['new_balance']) : 0;
+    $message = 'Payment of ₦' . number_format($payment_amount, 2) . ' recorded for ' . esc_html($debtor_name) . '. New balance: ₦' . number_format($new_balance, 2);
+    $message_type = 'success';
 }
 
 // Get debtors and products
@@ -743,7 +784,12 @@ function printReceipt() {
     }, 250);
 }
 function closeReceipt() {
+    <?php if (isset($redirect_after_receipt)) : ?>
+    window.location.href = '<?php echo esc_js($redirect_after_receipt); ?>';
+    <?php else : ?>
     document.getElementById('receipt-modal').style.display = 'none';
+    window.location.href = '<?php echo esc_url(remove_query_arg(array('debtor', 'action'))); ?>';
+    <?php endif; ?>
 }
 </script>
 <?php endif; ?>
