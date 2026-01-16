@@ -111,6 +111,14 @@ final class Chinemerem_Foods_Inventory {
         // Force desktop viewport width for mobile devices - auto-scales to fit screen
         echo '<meta name="viewport" content="width=1200, initial-scale=0.333, maximum-scale=1, user-scalable=yes">' . "\n";
         
+        // PWA manifest
+        echo '<link rel="manifest" href="' . esc_url(CFI_PLUGIN_URL . 'assets/manifest.json') . '">' . "\n";
+        echo '<meta name="theme-color" content="#001943">' . "\n";
+        echo '<meta name="apple-mobile-web-app-capable" content="yes">' . "\n";
+        echo '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">' . "\n";
+        echo '<meta name="apple-mobile-web-app-title" content="CFI">' . "\n";
+        echo '<link rel="apple-touch-icon" href="' . esc_url(CFI_PLUGIN_URL . 'assets/images/icon-192x192.png') . '">' . "\n";
+        
         echo '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n";
         echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
         echo '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>' . "\n";
