@@ -1,5 +1,5 @@
 /**
- * Chinemerem Foods Admin Script
+ * Chinemerem Foods Admin Script - Fixed for proper AJAX handling
  */
 (function($) {
     'use strict';
@@ -11,6 +11,19 @@
             const form = $(this);
             const btn = form.find('button[type="submit"]');
             
+            // Validate fields
+            var name = form.find('[name="name"]').val().trim();
+            var price = form.find('[name="price"]').val();
+            
+            if (!name) {
+                alert('Product name is required');
+                return;
+            }
+            if (!price || parseFloat(price) <= 0) {
+                alert('Price must be greater than 0');
+                return;
+            }
+            
             btn.prop('disabled', true).text('Adding...');
 
             $.ajax({
@@ -19,22 +32,22 @@
                 data: {
                     action: 'cfi_add_product',
                     nonce: cfiData?.nonce || '',
-                    name: form.find('[name="name"]').val(),
-                    price: form.find('[name="price"]').val(),
+                    name: name,
+                    price: price,
                     unit: form.find('[name="unit"]').val(),
                     category: form.find('[name="category"]').val()
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('Product added successfully');
+                        alert('Product added successfully!');
                         location.reload();
                     } else {
                         alert(response.data?.message || 'Failed to add product');
+                        btn.prop('disabled', false).text('Add Product');
                     }
-                    btn.prop('disabled', false).text('Add Product');
                 },
-                error: function() {
-                    alert('Network error');
+                error: function(xhr, status, error) {
+                    alert('Network error: ' + error);
                     btn.prop('disabled', false).text('Add Product');
                 }
             });
@@ -46,6 +59,12 @@
             const form = $(this);
             const btn = form.find('button[type="submit"]');
             
+            var name = form.find('[name="name"]').val().trim();
+            if (!name) {
+                alert('Debtor name is required');
+                return;
+            }
+            
             btn.prop('disabled', true).text('Adding...');
 
             $.ajax({
@@ -54,22 +73,22 @@
                 data: {
                     action: 'cfi_add_debtor',
                     nonce: cfiData?.nonce || '',
-                    name: form.find('[name="name"]').val(),
+                    name: name,
                     phone: form.find('[name="phone"]').val(),
                     email: form.find('[name="email"]').val(),
                     address: form.find('[name="address"]').val()
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('Debtor added successfully');
+                        alert('Debtor added successfully!');
                         location.reload();
                     } else {
                         alert(response.data?.message || 'Failed to add debtor');
+                        btn.prop('disabled', false).text('Add Debtor');
                     }
-                    btn.prop('disabled', false).text('Add Debtor');
                 },
-                error: function() {
-                    alert('Network error');
+                error: function(xhr, status, error) {
+                    alert('Network error: ' + error);
                     btn.prop('disabled', false).text('Add Debtor');
                 }
             });
@@ -81,6 +100,29 @@
             const form = $(this);
             const btn = form.find('button[type="submit"]');
             
+            // Validate all required fields
+            var username = form.find('[name="username"]').val().trim();
+            var email = form.find('[name="email"]').val().trim();
+            var password = form.find('[name="password"]').val();
+            var name = form.find('[name="name"]').val().trim();
+            
+            if (!username) {
+                alert('Username is required');
+                return;
+            }
+            if (!email) {
+                alert('Email is required');
+                return;
+            }
+            if (!password) {
+                alert('Password is required');
+                return;
+            }
+            if (!name) {
+                alert('Display name is required');
+                return;
+            }
+            
             btn.prop('disabled', true).text('Adding...');
 
             $.ajax({
@@ -89,24 +131,98 @@
                 data: {
                     action: 'cfi_add_user',
                     nonce: cfiData?.nonce || '',
-                    username: form.find('[name="username"]').val(),
-                    email: form.find('[name="email"]').val(),
-                    password: form.find('[name="password"]').val(),
-                    name: form.find('[name="name"]').val(),
+                    username: username,
+                    email: email,
+                    password: password,
+                    name: name,
                     role: form.find('[name="role"]').val()
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('User added successfully');
+                        alert('User added successfully!');
                         location.reload();
                     } else {
                         alert(response.data?.message || 'Failed to add user');
+                        btn.prop('disabled', false).text('Add User');
                     }
-                    btn.prop('disabled', false).text('Add User');
                 },
-                error: function() {
-                    alert('Network error');
+                error: function(xhr, status, error) {
+                    alert('Network error: ' + error);
                     btn.prop('disabled', false).text('Add User');
+                }
+            });
+        });
+        
+        // Edit product button click
+        $(document).on('click', '.cfi-edit-product', function() {
+            var id = $(this).data('id');
+            var row = $(this).closest('tr');
+            var name = row.find('td:eq(1)').text().trim();
+            var price = row.find('td:eq(2)').text().replace(/[₦,]/g, '').trim();
+            var unit = row.find('td:eq(3)').text().trim();
+            var category = row.find('td:eq(4)').text().trim();
+            
+            var newName = prompt('Product Name:', name);
+            if (newName === null) return;
+            var newPrice = prompt('Price:', price);
+            if (newPrice === null) return;
+            var newUnit = prompt('Unit:', unit);
+            if (newUnit === null) return;
+            var newCategory = prompt('Category:', category);
+            if (newCategory === null) return;
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'cfi_update_product',
+                    nonce: cfiData?.nonce || '',
+                    id: id,
+                    name: newName,
+                    price: newPrice,
+                    unit: newUnit,
+                    category: newCategory
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Product updated successfully!');
+                        location.reload();
+                    } else {
+                        alert(response.data?.message || 'Failed to update product');
+                    }
+                }
+            });
+        });
+        
+        // Edit debtor button click
+        $(document).on('click', '.cfi-edit-debtor', function() {
+            var id = $(this).data('id');
+            var row = $(this).closest('tr');
+            var name = row.find('td:eq(1)').text().trim();
+            var phone = row.find('td:eq(2)').text().trim();
+            
+            var newName = prompt('Debtor Name:', name);
+            if (newName === null) return;
+            var newPhone = prompt('Phone:', phone);
+            if (newPhone === null) return;
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'cfi_update_debtor',
+                    nonce: cfiData?.nonce || '',
+                    id: id,
+                    name: newName,
+                    phone: newPhone
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Debtor updated successfully!');
+                        location.reload();
+                    } else {
+                        alert(response.data?.message || 'Failed to update debtor');
+                    }
                 }
             });
         });
@@ -128,7 +244,10 @@
                 },
                 success: function(response) {
                     if (response.success) {
-                        btn.closest('tr').fadeOut();
+                        alert('Product deleted successfully!');
+                        btn.closest('tr').fadeOut(function() {
+                            $(this).remove();
+                        });
                     } else {
                         alert(response.data?.message || 'Failed to delete');
                     }
@@ -153,7 +272,10 @@
                 },
                 success: function(response) {
                     if (response.success) {
-                        btn.closest('tr').fadeOut();
+                        alert('Debtor deleted successfully!');
+                        btn.closest('tr').fadeOut(function() {
+                            $(this).remove();
+                        });
                     } else {
                         alert(response.data?.message || 'Failed to delete');
                     }
@@ -178,7 +300,10 @@
                 },
                 success: function(response) {
                     if (response.success) {
-                        btn.closest('tr').fadeOut();
+                        alert('User deleted successfully!');
+                        btn.closest('tr').fadeOut(function() {
+                            $(this).remove();
+                        });
                     } else {
                         alert(response.data?.message || 'Failed to delete');
                     }
