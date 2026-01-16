@@ -100,9 +100,9 @@ $debtors = CFI_Debtors::get_all();
 <body>
 <main class="cfi-history-container">
     <div class="cfi-page-header">
-        <h1><i class="fas fa-history"></i> Debtors History</h1>
-        <a href="/debtors-record/" class="cfi-btn cfi-btn-outline" style="background: white;">
-            <i class="fas fa-user-clock"></i> Current Debtors
+        <h1><i class="fas fa-history"></i> Debtors History<?php if ($selected_debtor) : $debtor_info = CFI_Debtors::get($selected_debtor); if ($debtor_info) : ?> - <?php echo esc_html($debtor_info->name); ?><?php endif; endif; ?></h1>
+        <a href="/debtors-record/" class="cfi-btn cfi-btn-outline" style="background: white; color: #001943 !important;">
+            <i class="fas fa-user-clock" style="color: #001943 !important;"></i> <span style="color: #001943 !important;">Current Debtors</span>
         </a>
     </div>
     

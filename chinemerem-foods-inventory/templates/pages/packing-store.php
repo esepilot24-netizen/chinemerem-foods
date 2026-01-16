@@ -338,20 +338,20 @@ foreach ($stock_data as $s) {
                             <td class="product-name"><?php echo esc_html($product->name); ?></td>
                             <td><?php echo number_format($opening, 0); ?></td>
                             <td>
-                                <input type="number" name="packing[<?php echo $product->id; ?>][to_packing]" value="<?php echo esc_attr($to_packing); ?>" min="0" step="0.5" onchange="calculateClosing(this)">
+                                <input type="number" name="packing[<?php echo $product->id; ?>][to_packing]" value="<?php echo esc_attr($to_packing); ?>" min="0" step="0.5" oninput="calculateClosing(this)">
                             </td>
                             <td>
-                                <input type="number" name="packing[<?php echo $product->id; ?>][from_packing]" value="<?php echo esc_attr($from_packing); ?>" min="0" step="0.5" onchange="calculateClosing(this)">
+                                <input type="number" name="packing[<?php echo $product->id; ?>][from_packing]" value="<?php echo esc_attr($from_packing); ?>" min="0" step="0.5" oninput="calculateClosing(this)">
                             </td>
                             <td>
-                                <input type="number" name="packing[<?php echo $product->id; ?>][balance_in_packing]" value="<?php echo esc_attr($balance); ?>" min="0" step="0.5">
+                                <input type="number" name="packing[<?php echo $product->id; ?>][balance_in_packing]" value="<?php echo esc_attr($balance); ?>" min="0" step="0.5" oninput="calculateClosing(this)">
                             </td>
                             <td>
                                 <!-- from_sales is read-only, synced from Stock's to_packing_store -->
                                 <input type="number" name="packing[<?php echo $product->id; ?>][from_sales]" value="<?php echo esc_attr($from_sales); ?>" readonly style="background: #f1f5f9; cursor: not-allowed;" title="Synced from Stock's To Pack column">
                             </td>
                             <td>
-                                <input type="number" name="packing[<?php echo $product->id; ?>][to_sales]" value="<?php echo esc_attr($to_sales); ?>" min="0" step="0.5" onchange="calculateClosing(this)">
+                                <input type="number" name="packing[<?php echo $product->id; ?>][to_sales]" value="<?php echo esc_attr($to_sales); ?>" min="0" step="0.5" oninput="calculateClosing(this)">
                             </td>
                             <td>
                                 <input type="text" name="packing[<?php echo $product->id; ?>][balance_remark]" value="<?php echo esc_attr($remark); ?>" style="width: 80px;">

@@ -275,6 +275,8 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         .cfi-debtor-balance.zero { color: #16a34a; }
         .cfi-debtor-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .cfi-debtor-actions .cfi-btn { flex: 1; justify-content: center; }
+        .cfi-section-title { font-size: 1rem; color: #ffffff !important; margin: 0 0 1rem 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #001943, #003366); border-radius: 10px; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+        .cfi-section-title i { color: #ffffff !important; }
         .cfi-glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,25,67,0.1); border: 2px solid rgba(0,25,67,0.1); margin-bottom: 1.5rem; }
         .cfi-form-group { margin-bottom: 1rem; }
         .cfi-form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001943; font-size: 0.85rem; }
@@ -521,6 +523,11 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
     
     <?php else : ?>
     <!-- Debtors List -->
+    <div class="cfi-section-title">
+        <i class="fas fa-users"></i>
+        <span style="color: #ffffff !important;">Current Debtors</span>
+    </div>
+    
     <?php if (empty($debtors)) : ?>
     <div class="cfi-glass cfi-no-debtors">
         <i class="fas fa-users"></i>
@@ -535,12 +542,12 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
     <?php else : ?>
     <div class="cfi-cards-grid">
         <?php foreach ($debtors as $debtor) : ?>
-        <div class="cfi-debtor-card">
+        <div class="cfi-debtor-card" data-debtor-id="<?php echo esc_attr($debtor->id); ?>">
             <h3 class="cfi-debtor-name"><?php echo esc_html($debtor->name); ?></h3>
             <?php if ($debtor->phone) : ?>
             <p class="cfi-debtor-phone"><i class="fas fa-phone"></i> <?php echo esc_html($debtor->phone); ?></p>
             <?php endif; ?>
-            <div class="cfi-debtor-balance <?php echo $debtor->total_debt <= 0 ? 'zero' : ''; ?>">
+            <div class="cfi-debtor-balance <?php echo $debtor->total_debt <= 0 ? 'zero' : ''; ?>" id="debtor-balance-<?php echo esc_attr($debtor->id); ?>">
                 ₦<?php echo number_format($debtor->total_debt, 2); ?>
             </div>
             <div class="cfi-debtor-actions">
@@ -549,6 +556,11 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
                 </a>
                 <a href="<?php echo esc_url(add_query_arg(array('debtor' => $debtor->id, 'action' => 'pay'))); ?>" class="cfi-btn cfi-btn-success">
                     <i class="fas fa-money-check"></i> Clear Debt
+                </a>
+            </div>
+            <div style="margin-top: 0.75rem;">
+                <a href="<?php echo esc_url(home_url('/debtors-history/?debtor=' . $debtor->id)); ?>" class="cfi-btn cfi-btn-outline" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-history"></i> View History
                 </a>
             </div>
         </div>
