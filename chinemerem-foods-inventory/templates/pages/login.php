@@ -170,23 +170,26 @@ $bg_style = $login_bg_image
     
     .cfi-input-wrapper i.input-icon {
         position: absolute;
-        left: 1rem;
+        left: 0.85rem;
         top: 50%;
         transform: translateY(-50%);
         color: #94a3b8;
-        font-size: 1rem;
+        font-size: 0.9rem;
         transition: color 0.3s;
+        pointer-events: none;
+        z-index: 1;
     }
     
     .cfi-form-input {
         width: 100%;
-        padding: 0.95rem 1rem 0.95rem 3.25rem;
+        padding: 0.95rem 1rem 0.95rem 3rem;
         border: 2px solid #e2e8f0;
         border-radius: 12px;
         font-size: 1rem;
         font-family: inherit;
         transition: all 0.3s;
         background: #f8fafc;
+        text-indent: 0.25rem;
     }
     
     .cfi-form-input::placeholder {
