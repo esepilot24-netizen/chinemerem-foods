@@ -30,14 +30,28 @@ class CFI_Auth {
      * Constructor
      */
     private function __construct() {
+        // Login action for non-logged users
         add_action('wp_ajax_nopriv_cfi_login', array($this, 'handle_login'));
+        // Login action for logged-in users (in case they visit login page while logged in)
+        add_action('wp_ajax_cfi_login', array($this, 'handle_login'));
+        // Logout for logged-in users
         add_action('wp_ajax_cfi_logout', array($this, 'handle_logout'));
+        // Logout for non-logged users (just in case)
+        add_action('wp_ajax_nopriv_cfi_logout', array($this, 'handle_logout'));
     }
     
     /**
      * Handle login AJAX request
      */
     public function handle_login() {
+        // Ensure we're outputting only JSON - clean any previous output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        // Set proper content type
+        header('Content-Type: application/json; charset=utf-8');
+        
         // For public login forms, use rate limiting and referer check
         // WordPress nonces don't work reliably for non-logged-in users with cookie issues
         // Basic CSRF protection: verify request comes from same site
@@ -57,7 +71,8 @@ class CFI_Auth {
         $remember = isset($_POST['remember']) ? (bool) $_POST['remember'] : false;
         
         if (empty($username) || empty($password)) {
-            wp_send_json_error(array('message' => __('Please enter username and password', 'chinemerem-foods')));
+            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Please enter username and password')));
+            exit;
         }
         
         $creds = array(
@@ -69,26 +84,32 @@ class CFI_Auth {
         $user = wp_signon($creds, is_ssl());
         
         if (is_wp_error($user)) {
-            wp_send_json_error(array('message' => __('Invalid username or password', 'chinemerem-foods')));
+            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Invalid username or password')));
+            exit;
         }
         
         // Check if user has CFI role
         if (!$this->user_has_cfi_access($user)) {
             wp_logout();
-            wp_send_json_error(array('message' => __('You do not have access to this system', 'chinemerem-foods')));
+            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'You do not have access to this system')));
+            exit;
         }
         
         // Get redirect URL - use /home/ path
         $redirect_url = home_url('/home/');
         
-        wp_send_json_success(array(
-            'message' => __('Login successful', 'chinemerem-foods'),
-            'redirect' => $redirect_url,
-            'user' => array(
-                'name' => $user->display_name,
-                'role' => $this->get_user_role_display($user)
+        echo wp_json_encode(array(
+            'success' => true,
+            'data' => array(
+                'message' => 'Login successful',
+                'redirect' => $redirect_url,
+                'user' => array(
+                    'name' => $user->display_name,
+                    'role' => $this->get_user_role_display($user)
+                )
             )
         ));
+        exit;
     }
     
     /**
@@ -96,16 +117,28 @@ class CFI_Auth {
      * Logout is a safe operation - doesn't require nonce verification
      */
     public function handle_logout() {
+        // Ensure we're outputting only JSON - clean any previous output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        // Set proper content type
+        header('Content-Type: application/json; charset=utf-8');
+        
         // Perform logout
         wp_logout();
         
         // Get the login page URL - try /sign-in/ first, then fallback
         $redirect_url = home_url('/sign-in/');
         
-        wp_send_json_success(array(
-            'message' => __('Logged out successfully', 'chinemerem-foods'),
-            'redirect' => $redirect_url
+        echo wp_json_encode(array(
+            'success' => true,
+            'data' => array(
+                'message' => 'Logged out successfully',
+                'redirect' => $redirect_url
+            )
         ));
+        exit;
     }
     
     /**
