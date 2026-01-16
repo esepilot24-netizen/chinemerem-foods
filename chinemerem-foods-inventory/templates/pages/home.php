@@ -77,10 +77,10 @@ $cards = array(
     ),
     array(
         'slug' => 'credit-order-summary',
-        'title' => 'Credit Order Summary',
+        'title' => 'Debtor Order Summary',
         'icon' => 'fas fa-chart-pie',
         'unicode' => '&#xf200;',
-        'description' => 'View credit order product analytics',
+        'description' => 'View debtor order product analytics',
     ),
     array(
         'slug' => 'cash-out',

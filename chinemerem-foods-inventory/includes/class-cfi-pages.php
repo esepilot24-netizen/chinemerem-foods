@@ -204,11 +204,11 @@ class CFI_Pages {
             ),
             array(
                 'slug' => 'cfi-credit-order-summary',
-                'title' => __('Credit Order Summary', 'chinemerem-foods'),
+                'title' => __('Debtor Order Summary', 'chinemerem-foods'),
                 'template' => 'credit-order-summary',
                 'icon' => 'fa-chart-pie',
                 'show_in_menu' => true,
-                'description' => __('Credit order product analytics', 'chinemerem-foods'),
+                'description' => __('Debtor order product analytics', 'chinemerem-foods'),
             ),
             array(
                 'slug' => 'cfi-cash-out',
@@ -414,9 +414,9 @@ class CFI_Pages {
             ),
             array(
                 'slug' => 'cfi-credit-order-summary',
-                'title' => __('Credit Order Summary', 'chinemerem-foods'),
+                'title' => __('Debtor Order Summary', 'chinemerem-foods'),
                 'icon' => 'fa-chart-pie',
-                'description' => __('View credit order product analytics', 'chinemerem-foods'),
+                'description' => __('View debtor order product analytics', 'chinemerem-foods'),
                 'color' => '#d53f8c',
             ),
             array(

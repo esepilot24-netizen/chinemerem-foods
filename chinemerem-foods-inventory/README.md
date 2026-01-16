@@ -16,7 +16,7 @@ A comprehensive WordPress plugin for managing inventory, orders, and financial r
 - **Take Order**: Process cash and transfer/card payments
 - **Order History**: View and filter past orders
 - **Order Product Summary**: Daily analytics by product
-- **Credit Order Summary**: Debtor order analytics
+- **Debtor Order Summary**: Debtor order analytics
 
 #### Inventory Management
 - **Stock Inventory**: Track opening, closing, imports, sales
