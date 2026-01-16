@@ -1,6 +1,7 @@
 <?php
 /**
- * Authentication Handler Class
+ * Authentication Handler Class - Rebuilt for Reliability
+ * Uses standard form POST (no AJAX) for maximum compatibility
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -30,45 +31,42 @@ class CFI_Auth {
      * Constructor
      */
     private function __construct() {
-        // Login action for non-logged users
-        add_action('wp_ajax_nopriv_cfi_login', array($this, 'handle_login'));
-        // Login action for logged-in users (in case they visit login page while logged in)
-        add_action('wp_ajax_cfi_login', array($this, 'handle_login'));
-        // Logout for logged-in users
-        add_action('wp_ajax_cfi_logout', array($this, 'handle_logout'));
-        // Logout for non-logged users (just in case)
-        add_action('wp_ajax_nopriv_cfi_logout', array($this, 'handle_logout'));
+        // Handle form POST login/logout on init (before any output)
+        add_action('init', array($this, 'handle_form_submission'), 1);
+        
+        // Also keep AJAX handlers for backward compatibility
+        add_action('wp_ajax_nopriv_cfi_login', array($this, 'ajax_login'));
+        add_action('wp_ajax_cfi_login', array($this, 'ajax_login'));
+        add_action('wp_ajax_cfi_logout', array($this, 'ajax_logout'));
+        add_action('wp_ajax_nopriv_cfi_logout', array($this, 'ajax_logout'));
     }
     
     /**
-     * Handle login AJAX request
+     * Handle standard form POST submission (most reliable method)
      */
-    public function handle_login() {
-        // Suppress all errors to prevent output before JSON
-        @error_reporting(0);
-        @ini_set('display_errors', 0);
-        
-        // Ensure we're outputting only JSON - clean any previous output
-        if (ob_get_length()) ob_clean();
-        while (ob_get_level() > 0) {
-            ob_end_clean();
+    public function handle_form_submission() {
+        // Handle Login
+        if (isset($_POST['cfi_login_action']) && $_POST['cfi_login_action'] === 'login') {
+            $this->process_login();
         }
         
-        // Prevent caching
-        nocache_headers();
-        
-        // Set proper content type
-        header('Content-Type: application/json; charset=utf-8');
-        header('X-Content-Type-Options: nosniff');
-        
+        // Handle Logout via GET or POST
+        if (isset($_GET['cfi_logout']) || isset($_POST['cfi_logout_action'])) {
+            $this->process_logout();
+        }
+    }
+    
+    /**
+     * Process login (standard form POST)
+     */
+    private function process_login() {
         $username = isset($_POST['username']) ? sanitize_user(wp_unslash($_POST['username'])) : '';
-        // Password is not unslashed or sanitized to preserve special characters for authentication
-        $password = isset($_POST['password']) ? $_POST['password'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-        $remember = isset($_POST['remember']) ? (bool) $_POST['remember'] : false;
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
+        $remember = isset($_POST['remember']) ? true : false;
         
         if (empty($username) || empty($password)) {
-            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Please enter username and password')));
-            die();
+            wp_safe_redirect(add_query_arg('login_error', 'empty', home_url('/sign-in/')));
+            exit;
         }
         
         $creds = array(
@@ -80,76 +78,92 @@ class CFI_Auth {
         $user = wp_signon($creds, is_ssl());
         
         if (is_wp_error($user)) {
-            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Invalid username or password')));
-            die();
+            wp_safe_redirect(add_query_arg('login_error', 'invalid', home_url('/sign-in/')));
+            exit;
         }
         
-        // Check if user has CFI role
+        // Check if user has CFI access
         if (!$this->user_has_cfi_access($user)) {
             wp_logout();
-            echo wp_json_encode(array('success' => false, 'data' => array('message' => 'You do not have access to this system')));
-            die();
+            wp_safe_redirect(add_query_arg('login_error', 'noaccess', home_url('/sign-in/')));
+            exit;
         }
         
         // Set current user
         wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, $remember, is_ssl());
         
-        // Get redirect URL - use /home/ path
-        $redirect_url = home_url('/home/');
-        
-        echo wp_json_encode(array(
-            'success' => true,
-            'data' => array(
-                'message' => 'Login successful',
-                'redirect' => $redirect_url,
-                'user' => array(
-                    'name' => $user->display_name,
-                    'role' => $this->get_user_role_display($user)
-                )
-            )
-        ));
-        die();
+        // Success - redirect to home
+        wp_safe_redirect(home_url('/home/'));
+        exit;
     }
     
     /**
-     * Handle logout AJAX request
-     * Logout is a safe operation - doesn't require nonce verification
+     * Process logout (standard form POST or GET)
      */
-    public function handle_logout() {
-        // Suppress all errors to prevent output before JSON
-        @error_reporting(0);
-        @ini_set('display_errors', 0);
+    private function process_logout() {
+        wp_logout();
+        wp_safe_redirect(home_url('/sign-in/?logged_out=1'));
+        exit;
+    }
+    
+    /**
+     * AJAX login handler (backup method)
+     */
+    public function ajax_login() {
+        // Clean output buffer
+        while (ob_get_level()) ob_end_clean();
         
-        // Ensure we're outputting only JSON - clean any previous output
-        if (ob_get_length()) ob_clean();
-        while (ob_get_level() > 0) {
-            ob_end_clean();
+        header('Content-Type: application/json');
+        
+        $username = isset($_POST['username']) ? sanitize_user(wp_unslash($_POST['username'])) : '';
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
+        $remember = isset($_POST['remember']) ? (bool) $_POST['remember'] : false;
+        
+        if (empty($username) || empty($password)) {
+            wp_send_json_error(array('message' => 'Please enter username and password'));
         }
         
-        // Prevent caching
-        nocache_headers();
+        $creds = array(
+            'user_login'    => $username,
+            'user_password' => $password,
+            'remember'      => $remember
+        );
         
-        // Set proper content type
-        header('Content-Type: application/json; charset=utf-8');
-        header('X-Content-Type-Options: nosniff');
+        $user = wp_signon($creds, is_ssl());
         
-        // Perform logout
+        if (is_wp_error($user)) {
+            wp_send_json_error(array('message' => 'Invalid username or password'));
+        }
+        
+        if (!$this->user_has_cfi_access($user)) {
+            wp_logout();
+            wp_send_json_error(array('message' => 'You do not have access to this system'));
+        }
+        
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, $remember, is_ssl());
+        
+        wp_send_json_success(array(
+            'message' => 'Login successful',
+            'redirect' => home_url('/home/')
+        ));
+    }
+    
+    /**
+     * AJAX logout handler (backup method)
+     */
+    public function ajax_logout() {
+        while (ob_get_level()) ob_end_clean();
+        
+        header('Content-Type: application/json');
+        
         wp_logout();
         
-        // Clear any cookies
-        wp_clear_auth_cookie();
-        
-        // Get the login page URL - use /sign-in/
-        $redirect_url = home_url('/sign-in/');
-        
-        echo wp_json_encode(array(
-            'success' => true,
-            'data' => array(
-                'message' => 'Logged out successfully',
-                'redirect' => $redirect_url
-            )
+        wp_send_json_success(array(
+            'message' => 'Logged out successfully',
+            'redirect' => home_url('/sign-in/')
         ));
-        die();
     }
     
     /**
