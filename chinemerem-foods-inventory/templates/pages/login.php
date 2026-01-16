@@ -1,7 +1,7 @@
 <?php
 /**
- * Login Page Template - Beautiful, Sleek & Clean
- * Uses background image from WordPress admin settings
+ * Login Page Template - Clean & Modern Design
+ * Rebuilt from scratch for proper icon spacing and functionality
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -12,11 +12,8 @@ if (!defined('ABSPATH')) {
 
 // Redirect if already logged in
 if (is_user_logged_in()) {
-    $home_page = get_page_by_path('cfi-home');
-    if ($home_page) {
-        wp_redirect(get_permalink($home_page->ID));
-        exit;
-    }
+    wp_redirect(home_url('/home/'));
+    exit;
 }
 
 // Get settings
@@ -32,504 +29,436 @@ $bg_style = $login_bg_image
     ? "background-image: url('" . esc_url($login_bg_image) . "');"
     : "background: linear-gradient(135deg, #001943 0%, #002960 50%, #001943 100%);";
 ?>
-<style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body, html {
-        min-height: 100vh;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    
-    .cfi-login-wrapper {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    /* Background Layer */
-    .cfi-login-wrapper::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        <?php echo $bg_style; ?>
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        z-index: 0;
-    }
-    
-    /* Light Overlay - subtle for better text readability while showing background image */
-    .cfi-login-wrapper::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.25);
-        z-index: 1;
-    }
-    
-    /* Login Box - Glassmorphism */
-    .cfi-login-box {
-        position: relative;
-        z-index: 10;
-        width: 100%;
-        max-width: 420px;
-        background: rgba(255, 255, 255, 0.98);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 24px;
-        padding: 3rem 2.5rem;
-        box-shadow: 
-            0 25px 60px rgba(0, 25, 67, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        animation: slideUp 0.6s ease-out;
-    }
-    
-    @keyframes slideUp {
-        from { 
-            opacity: 0; 
-            transform: translateY(40px); 
-        }
-        to { 
-            opacity: 1; 
-            transform: translateY(0); 
-        }
-    }
-    
-    /* Logo Section */
-    .cfi-login-logo {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .cfi-login-logo .logo-icon {
-        width: 90px;
-        height: 90px;
-        background: transparent;
-        border-radius: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.25rem;
-        overflow: hidden;
-    }
-    
-    .cfi-login-logo .logo-icon img {
-        width: 90px;
-        height: 90px;
-        object-fit: contain;
-    }
-    
-    .cfi-login-logo .logo-icon i {
-        font-size: 3rem;
-        color: #001943;
-    }
-    
-    .cfi-login-logo h1 {
-        color: #001943;
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 0.35rem 0;
-        letter-spacing: -0.5px;
-    }
-    
-    .cfi-login-logo p {
-        color: #64748b;
-        font-size: 0.75rem;
-        margin: 0;
-        font-weight: 400;
-    }
-    
-    /* Form Styles */
-    .cfi-login-form-group {
-        margin-bottom: 1.25rem;
-    }
-    
-    .cfi-login-form-group label {
-        display: block;
-        color: #001943;
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .cfi-input-wrapper {
-        position: relative;
-    }
-    
-    .cfi-input-wrapper i.input-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #94a3b8;
-        font-size: 0.85rem;
-        transition: color 0.3s;
-        pointer-events: none;
-        z-index: 1;
-        width: 16px;
-        text-align: center;
-    }
-    
-    .cfi-form-input {
-        width: 100%;
-        padding: 0.95rem 1rem 0.95rem 2.75rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-family: inherit;
-        transition: all 0.3s;
-        background: #f8fafc;
-    }
-    
-    .cfi-form-input::placeholder {
-        color: #94a3b8;
-    }
-    
-    .cfi-form-input:focus {
-        outline: none;
-        border-color: #001943;
-        background: white;
-        box-shadow: 0 0 0 4px rgba(0, 25, 67, 0.1);
-    }
-    
-    .cfi-form-input:focus + i.input-icon,
-    .cfi-form-input:focus ~ i.input-icon {
-        color: #001943;
-    }
-    
-    /* Password Field */
-    .cfi-password-wrapper {
-        position: relative;
-    }
-    
-    .cfi-password-wrapper .cfi-form-input {
-        padding-right: 3rem;
-    }
-    
-    .cfi-password-toggle {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: #94a3b8;
-        cursor: pointer;
-        padding: 0.25rem;
-        font-size: 1rem;
-        transition: color 0.3s;
-        z-index: 2;
-    }
-    
-    .cfi-password-toggle:hover {
-        color: #001943;
-    }
-    
-    /* Remember Me Checkbox */
-    .cfi-checkbox-group {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin: 1.25rem 0;
-    }
-    
-    .cfi-checkbox-group input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: #001943;
-        cursor: pointer;
-    }
-    
-    .cfi-checkbox-group span {
-        color: #64748b;
-        font-size: 0.875rem;
-    }
-    
-    /* Login Button */
-    .cfi-login-btn {
-        width: 100%;
-        padding: 1.1rem;
-        background: linear-gradient(135deg, #001943 0%, #002960 100%);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-weight: 600;
-        font-family: inherit;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 25, 67, 0.3);
-    }
-    
-    .cfi-login-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 25, 67, 0.4);
-    }
-    
-    .cfi-login-btn:active {
-        transform: translateY(0);
-    }
-    
-    /* Footer */
-    .cfi-login-footer {
-        text-align: center;
-        margin-top: 2rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #e2e8f0;
-    }
-    
-    .cfi-login-footer p {
-        color: #94a3b8;
-        font-size: 0.8rem;
-        margin: 0.25rem 0;
-    }
-    
-    .cfi-login-footer a {
-        color: #001943;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.3s;
-    }
-    
-    .cfi-login-footer a:hover {
-        color: #2563eb;
-        text-decoration: underline;
-    }
-    
-    /* WhatsApp Button */
-    .cfi-whatsapp-btn {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        z-index: 1000;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
-        text-decoration: none;
-        transition: all 0.3s ease;
-        animation: pulse 2s infinite;
-    }
-    
-    .cfi-whatsapp-btn:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 30px rgba(37, 211, 102, 0.5);
-    }
-    
-    .cfi-whatsapp-btn i {
-        font-size: 2rem;
-        color: white;
-    }
-    
-    @keyframes pulse {
-        0% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
-        50% { box-shadow: 0 4px 35px rgba(37, 211, 102, 0.6); }
-        100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
-    }
-    
-    /* Error Message */
-    .cfi-login-error {
-        background: #fee2e2;
-        border: 1px solid #fecaca;
-        color: #dc2626;
-        padding: 0.75rem 1rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-        display: none;
-    }
-    
-    .cfi-login-error.show {
-        display: block;
-        animation: shake 0.5s ease;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-    
-    /* Loading state */
-    .cfi-login-btn.loading {
-        pointer-events: none;
-        opacity: 0.8;
-    }
-    
-    .cfi-login-btn.loading i {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    /* Mobile Responsive */
-    @media (max-width: 480px) {
-        .cfi-login-wrapper { 
-            padding: 1rem; 
+<!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo esc_html($business_name); ?> - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         
-        .cfi-login-box { 
-            padding: 2rem 1.5rem; 
-            border-radius: 20px; 
+        html, body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
         
-        .cfi-login-logo h1 { 
-            font-size: 1.5rem; 
+        /* Main Container */
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            <?php echo $bg_style; ?>
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
         }
         
-        .cfi-login-logo .logo-icon {
-            width: 75px;
-            height: 75px;
+        /* Dark Overlay - minimal for background visibility */
+        .login-page::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.2);
         }
         
-        .cfi-login-logo .logo-icon img {
-            width: 75px;
-            height: 75px;
+        /* Login Card */
+        .login-card {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 40px 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
         }
         
-        .cfi-whatsapp-btn { 
-            bottom: 20px; 
-            right: 20px; 
-            width: 55px; 
-            height: 55px; 
+        /* Logo Area */
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
         }
         
-        .cfi-whatsapp-btn i { 
-            font-size: 1.75rem; 
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-    }
-</style>
-
-<div class="cfi-login-wrapper">
-    <div class="cfi-login-box">
-        <div class="cfi-login-logo">
-            <div class="logo-icon">
-                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($business_name); ?> Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-wheat-awn\'></i>';">
-            </div>
-            <h1><?php echo esc_html($business_name); ?></h1>
-            <p><?php esc_html_e('Inventory Management System', 'chinemerem-foods'); ?></p>
-        </div>
         
-        <div class="cfi-login-error" id="cfi-login-error"></div>
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
         
-        <form id="cfi-login-form">
-            <div class="cfi-login-form-group">
-                <label for="cfi-username"><?php esc_html_e('Username', 'chinemerem-foods'); ?></label>
-                <div class="cfi-input-wrapper">
-                    <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="cfi-username" name="username" class="cfi-form-input" placeholder="<?php esc_attr_e('Enter your username', 'chinemerem-foods'); ?>" required autofocus>
+        .login-logo-fallback {
+            font-size: 40px;
+            color: #001943;
+        }
+        
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #001943;
+            margin-bottom: 4px;
+        }
+        
+        .login-header p {
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        /* Error Box */
+        .login-error {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: #dc2626;
+            font-size: 14px;
+        }
+        
+        .login-error.visible {
+            display: block;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        
+        /* Input Container - Icons OUTSIDE the input */
+        .input-container {
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .input-container:focus-within {
+            border-color: #001943;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0, 25, 67, 0.1);
+        }
+        
+        .input-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
+        
+        .input-container:focus-within .input-icon {
+            color: #001943;
+        }
+        
+        .form-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 14px 16px 14px 0;
+            font-size: 15px;
+            font-family: inherit;
+            color: #1e293b;
+            outline: none;
+        }
+        
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+        
+        /* Password Toggle */
+        .password-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .password-toggle:hover {
+            color: #001943;
+        }
+        
+        /* Remember Checkbox */
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .remember-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #001943;
+            cursor: pointer;
+        }
+        
+        .remember-row label {
+            font-size: 14px;
+            color: #64748b;
+            cursor: pointer;
+        }
+        
+        /* Login Button */
+        .login-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #001943 0%, #002960 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 25, 67, 0.3);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-btn .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .login-footer p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin: 4px 0;
+        }
+        
+        .login-footer a {
+            color: #001943;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* WhatsApp Button */
+        .whatsapp-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #25d366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(37, 211, 102, 0.4);
+            text-decoration: none;
+            z-index: 100;
+        }
+        
+        .whatsapp-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .whatsapp-btn i {
+            font-size: 28px;
+            color: #fff;
+        }
+        
+        /* Mobile */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 24px;
+            }
+            
+            .login-logo {
+                width: 64px;
+                height: 64px;
+            }
+            
+            .login-header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <?php if ($login_logo): ?>
+                        <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($business_name); ?>" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                        <i class="fas fa-wheat-awn login-logo-fallback" style="display:none;"></i>
+                    <?php else: ?>
+                        <i class="fas fa-wheat-awn login-logo-fallback"></i>
+                    <?php endif; ?>
                 </div>
+                <h1><?php echo esc_html($business_name); ?></h1>
+                <p>Inventory Management System</p>
             </div>
             
-            <div class="cfi-login-form-group">
-                <label for="cfi-password"><?php esc_html_e('Password', 'chinemerem-foods'); ?></label>
-                <div class="cfi-input-wrapper cfi-password-wrapper">
-                    <i class="fas fa-lock input-icon"></i>
-                    <input type="password" id="cfi-password" name="password" class="cfi-form-input" placeholder="<?php esc_attr_e('Enter your password', 'chinemerem-foods'); ?>" required>
-                    <button type="button" class="cfi-password-toggle" id="cfi-toggle-password" aria-label="<?php esc_attr_e('Toggle password visibility', 'chinemerem-foods'); ?>">
-                        <i class="fas fa-eye" id="cfi-password-icon"></i>
-                    </button>
+            <div class="login-error" id="loginError"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <div class="input-container">
+                        <span class="input-icon">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username" required autocomplete="username">
+                    </div>
                 </div>
-            </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-container">
+                        <span class="input-icon">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" id="togglePassword" aria-label="Show password">
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="remember-row">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt" id="btnIcon"></i>
+                    <span id="btnText">Login</span>
+                </button>
+            </form>
             
-            <div class="cfi-checkbox-group">
-                <input type="checkbox" id="cfi-remember" name="remember">
-                <span><?php esc_html_e('Remember me', 'chinemerem-foods'); ?></span>
+            <div class="login-footer">
+                <p>&copy; <?php echo esc_html(gmdate('Y')); ?> <?php echo esc_html($business_name); ?></p>
+                <p>Designed by <a href="https://bendlestech.com" target="_blank">BendlessTech</a></p>
             </div>
-            
-            <button type="submit" class="cfi-login-btn" id="cfi-login-btn">
-                <i class="fas fa-sign-in-alt"></i>
-                <?php esc_html_e('Login', 'chinemerem-foods'); ?>
-            </button>
-        </form>
-        
-        <div class="cfi-login-footer">
-            <p>&copy; <?php echo esc_html(gmdate('Y')); ?> <?php echo esc_html($business_name); ?></p>
-            <p><?php esc_html_e('Designed by', 'chinemerem-foods'); ?> <a href="https://bendlestech.com" target="_blank" rel="noopener">BendlessTech</a></p>
         </div>
     </div>
-</div>
-
-<!-- WhatsApp Button -->
-<a href="https://wa.me/2349019099708" target="_blank" rel="noopener" class="cfi-whatsapp-btn" title="<?php esc_attr_e('Contact us on WhatsApp', 'chinemerem-foods'); ?>">
-    <i class="fab fa-whatsapp"></i>
-</a>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Password toggle
-    var toggleBtn = document.getElementById('cfi-toggle-password');
-    var passwordField = document.getElementById('cfi-password');
-    var icon = document.getElementById('cfi-password-icon');
     
-    if (toggleBtn && passwordField && icon) {
+    <a href="https://wa.me/2349019099708" target="_blank" class="whatsapp-btn" title="Contact us on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    
+    <script>
+    (function() {
+        var form = document.getElementById('loginForm');
+        var errorBox = document.getElementById('loginError');
+        var btn = document.getElementById('loginBtn');
+        var btnIcon = document.getElementById('btnIcon');
+        var btnText = document.getElementById('btnText');
+        var toggleBtn = document.getElementById('togglePassword');
+        var toggleIcon = document.getElementById('toggleIcon');
+        var passwordInput = document.getElementById('password');
+        
+        // Toggle password visibility
         toggleBtn.addEventListener('click', function() {
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
             } else {
-                passwordField.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
             }
         });
-    }
-    
-    // Form submission
-    var loginForm = document.getElementById('cfi-login-form');
-    var loginBtn = document.getElementById('cfi-login-btn');
-    var errorDiv = document.getElementById('cfi-login-error');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            var username = document.getElementById('cfi-username').value.trim();
-            var password = document.getElementById('cfi-password').value;
-            var remember = document.getElementById('cfi-remember').checked;
+            var username = document.getElementById('username').value.trim();
+            var password = document.getElementById('password').value;
+            var remember = document.getElementById('remember').checked;
             
             if (!username || !password) {
-                showError('<?php echo esc_js(__('Please enter username and password', 'chinemerem-foods')); ?>');
+                showError('Please enter username and password');
                 return;
             }
             
-            // Show loading state
-            loginBtn.classList.add('loading');
-            loginBtn.innerHTML = '<i class="fas fa-spinner"></i> <?php echo esc_js(__('Logging in...', 'chinemerem-foods')); ?>';
+            // Show loading
+            btn.disabled = true;
+            btnIcon.className = 'fas fa-spinner spinner';
+            btnText.textContent = 'Logging in...';
+            errorBox.classList.remove('visible');
             
-            // AJAX login - no nonce needed for public login forms
-            // Security is provided by credential verification itself
+            // Create form data
             var formData = new FormData();
             formData.append('action', 'cfi_login');
             formData.append('username', username);
             formData.append('password', password);
             formData.append('remember', remember ? '1' : '0');
             
-            fetch('<?php echo esc_js(admin_url('admin-ajax.php')); ?>', {
+            // Send request
+            fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin'
@@ -539,31 +468,31 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(function(data) {
                 if (data.success) {
-                    // Redirect to home
-                    window.location.href = data.data.redirect || '<?php echo esc_js(home_url('/home/')); ?>';
+                    btnIcon.className = 'fas fa-check';
+                    btnText.textContent = 'Success!';
+                    window.location.href = data.data.redirect || '<?php echo esc_url(home_url('/home/')); ?>';
                 } else {
-                    showError(data.data.message || '<?php echo esc_js(__('Login failed. Please check your credentials.', 'chinemerem-foods')); ?>');
+                    showError(data.data && data.data.message ? data.data.message : 'Login failed. Please try again.');
                     resetButton();
                 }
             })
-            .catch(function(error) {
-                showError('<?php echo esc_js(__('An error occurred. Please try again.', 'chinemerem-foods')); ?>');
+            .catch(function(err) {
+                showError('Connection error. Please try again.');
                 resetButton();
             });
         });
-    }
-    
-    function showError(message) {
-        errorDiv.textContent = message;
-        errorDiv.classList.add('show');
-        setTimeout(function() {
-            errorDiv.classList.remove('show');
-        }, 5000);
-    }
-    
-    function resetButton() {
-        loginBtn.classList.remove('loading');
-        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <?php echo esc_js(__('Login', 'chinemerem-foods')); ?>';
-    }
-});
-</script>
+        
+        function showError(msg) {
+            errorBox.textContent = msg;
+            errorBox.classList.add('visible');
+        }
+        
+        function resetButton() {
+            btn.disabled = false;
+            btnIcon.className = 'fas fa-sign-in-alt';
+            btnText.textContent = 'Login';
+        }
+    })();
+    </script>
+</body>
+</html>
