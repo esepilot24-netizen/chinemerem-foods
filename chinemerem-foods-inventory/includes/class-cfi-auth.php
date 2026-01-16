@@ -1,7 +1,8 @@
 <?php
 /**
- * Authentication Handler Class - Rebuilt for Reliability
- * Uses WordPress admin-post.php for form handling (guaranteed to work)
+ * Authentication Handler Class - Uses Native WordPress wp_signon
+ * Handles login/logout at plugins_loaded time (before init/template_redirect)
+ * This ensures redirects happen BEFORE any page content is output
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -28,43 +29,47 @@ class CFI_Auth {
     }
     
     /**
-     * Constructor
+     * Constructor - handles auth requests immediately at plugins_loaded time
      */
     private function __construct() {
-        // Use admin-post.php handlers (most reliable in WordPress)
-        add_action('admin_post_nopriv_cfi_do_login', array($this, 'handle_login'));
-        add_action('admin_post_cfi_do_login', array($this, 'handle_login'));
-        add_action('admin_post_nopriv_cfi_do_logout', array($this, 'handle_logout'));
-        add_action('admin_post_cfi_do_logout', array($this, 'handle_logout'));
-        
-        // Handle Logout via GET parameter (simple method)
-        add_action('init', array($this, 'check_logout_request'), 1);
+        // Handle login/logout IMMEDIATELY when class is instantiated
+        // This runs at plugins_loaded time, BEFORE init hook
+        // This ensures we redirect before any page content is output
+        $this->handle_auth_requests();
     }
     
     /**
-     * Check for logout request via GET parameter
+     * Handle all authentication requests immediately
      */
-    public function check_logout_request() {
+    public function handle_auth_requests() {
+        // Handle LOGOUT - via GET parameter
         if (isset($_GET['cfi_logout']) && $_GET['cfi_logout'] === '1') {
-            wp_logout();
-            wp_safe_redirect(home_url('/sign-in/?logged_out=1'));
-            exit;
+            $this->do_logout();
+            return;
+        }
+        
+        // Handle LOGIN - via POST
+        if (isset($_POST['cfi_login_submit']) && $_POST['cfi_login_submit'] === '1') {
+            $this->do_login();
+            return;
         }
     }
     
     /**
-     * Handle login form submission via admin-post.php
+     * Process login
      */
-    public function handle_login() {
+    private function do_login() {
         $username = isset($_POST['username']) ? sanitize_user(wp_unslash($_POST['username'])) : '';
         $password = isset($_POST['password']) ? $_POST['password'] : '';
         $remember = isset($_POST['remember']) ? true : false;
         
+        // Validate inputs
         if (empty($username) || empty($password)) {
             wp_safe_redirect(home_url('/sign-in/?login_error=empty'));
             exit;
         }
         
+        // Attempt login with WordPress native function
         $creds = array(
             'user_login'    => $username,
             'user_password' => $password,
@@ -73,6 +78,7 @@ class CFI_Auth {
         
         $user = wp_signon($creds, is_ssl());
         
+        // Check for errors
         if (is_wp_error($user)) {
             wp_safe_redirect(home_url('/sign-in/?login_error=invalid'));
             exit;
@@ -85,20 +91,31 @@ class CFI_Auth {
             exit;
         }
         
-        // Set current user and auth cookie
+        // Set current user explicitly
         wp_set_current_user($user->ID);
+        
+        // Set auth cookie (this is what actually logs the user in for next page load)
         wp_set_auth_cookie($user->ID, $remember, is_ssl());
         
-        // Success - redirect to home
+        // Redirect to home page
         wp_safe_redirect(home_url('/home/'));
         exit;
     }
     
     /**
-     * Handle logout form submission
+     * Process logout
      */
-    public function handle_logout() {
+    private function do_logout() {
+        // Clear all auth cookies
+        wp_clear_auth_cookie();
+        
+        // Destroy session
+        wp_destroy_current_session();
+        
+        // Call WordPress logout
         wp_logout();
+        
+        // Redirect to login page with success message
         wp_safe_redirect(home_url('/sign-in/?logged_out=1'));
         exit;
     }

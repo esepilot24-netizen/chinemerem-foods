@@ -1,7 +1,7 @@
 <?php
 /**
- * Login Page Template - Simple and Reliable
- * Uses standard form POST submission (no AJAX) for maximum compatibility
+ * Login Page Template - Simple POST Form
+ * Form posts to the same page, handled by init hook before any output
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -302,9 +302,9 @@ if (isset($_GET['logged_out'])) {
             <div class="cfi-alert cfi-alert-success"><?php echo esc_html($success_message); ?></div>
         <?php endif; ?>
         
-        <!-- Form submits to admin-post.php (WordPress standard, always works) -->
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <input type="hidden" name="action" value="cfi_do_login">
+        <!-- Form posts to sign-in page, handled by init hook before any output -->
+        <form method="post" action="<?php echo esc_url(home_url('/sign-in/')); ?>">
+            <input type="hidden" name="cfi_login_submit" value="1">
             
             <div class="cfi-form-group">
                 <label class="cfi-form-label" for="cfi_username">Username</label>

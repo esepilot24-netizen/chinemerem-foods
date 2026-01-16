@@ -72,6 +72,10 @@ final class Chinemerem_Foods_Inventory {
         require_once CFI_PLUGIN_DIR . 'includes/class-cfi-backup.php';
         require_once CFI_PLUGIN_DIR . 'includes/class-cfi-shortcodes.php';
         require_once CFI_PLUGIN_DIR . 'includes/class-cfi-admin.php';
+        
+        // Initialize Auth IMMEDIATELY at plugins_loaded (before init hook)
+        // This ensures login/logout handlers run before any page content
+        CFI_Auth::get_instance();
     }
 
     /**
@@ -204,8 +208,8 @@ final class Chinemerem_Foods_Inventory {
      * Initialize plugin
      */
     public function init() {
-        // Initialize classes
-        CFI_Auth::get_instance();
+        // CFI_Auth is now initialized at plugins_loaded (earlier than init)
+        // So it's already handling login/logout requests
         CFI_Ajax::get_instance();
         CFI_Shortcodes::get_instance();
         CFI_Admin::get_instance();
