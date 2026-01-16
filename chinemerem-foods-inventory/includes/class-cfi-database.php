@@ -424,8 +424,9 @@ class CFI_Database {
             $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `staff2_remarks`");
             $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_time` datetime DEFAULT NULL AFTER `staff3_id`");
             $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_remarks` text DEFAULT '' AFTER `staff3_time`");
-            // Reset is_complete for partial records (they need 3rd signature now)
-            $wpdb->query("UPDATE `$recon_table` SET `is_complete` = 0 WHERE `staff3_id` IS NULL");
+            // Reset is_complete for records that had 2 signatures (they need 3rd signature now)
+            // Only reset records where staff2_id is set (was complete with 2 admins) but staff3_id is NULL
+            $wpdb->query("UPDATE `$recon_table` SET `is_complete` = 0 WHERE `staff2_id` IS NOT NULL AND `staff3_id` IS NULL");
         }
         
         // Reconciliation history table - Updated for 3 staff

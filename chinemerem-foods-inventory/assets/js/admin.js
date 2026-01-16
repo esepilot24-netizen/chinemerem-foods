@@ -171,8 +171,10 @@
             var newCategory = prompt('Category:', category);
             if (newCategory === null) return;
             
+            var ajaxUrl = (typeof cfiData !== 'undefined' && cfiData.ajaxUrl) ? cfiData.ajaxUrl : ajaxurl;
+            
             $.ajax({
-                url: ajaxurl,
+                url: ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'cfi_update_product',
@@ -206,8 +208,10 @@
             var newPhone = prompt('Phone:', phone);
             if (newPhone === null) return;
             
+            var ajaxUrl = (typeof cfiData !== 'undefined' && cfiData.ajaxUrl) ? cfiData.ajaxUrl : ajaxurl;
+            
             $.ajax({
-                url: ajaxurl,
+                url: ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'cfi_update_debtor',
