@@ -21,6 +21,22 @@ $business_name = get_option('cfi_business_name', 'Chinemerem Foods');
 $login_logo = get_option('cfi_login_logo_image', '');
 $login_bg = get_option('cfi_login_background_image', '');
 
+// If no custom login logo, try to get WordPress site logo
+if (empty($login_logo)) {
+    $custom_logo_id = get_theme_mod('custom_logo');
+    if ($custom_logo_id) {
+        $login_logo = wp_get_attachment_image_url($custom_logo_id, 'medium');
+    }
+}
+
+// If still no logo, try site icon
+if (empty($login_logo)) {
+    $site_icon_id = get_option('site_icon');
+    if ($site_icon_id) {
+        $login_logo = wp_get_attachment_image_url($site_icon_id, 'medium');
+    }
+}
+
 // Get error/success messages from URL
 $error = isset($_GET['error']) ? sanitize_text_field($_GET['error']) : '';
 $logout = isset($_GET['logout']) ? true : false;

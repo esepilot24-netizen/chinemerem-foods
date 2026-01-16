@@ -27,6 +27,24 @@ class CFI_Auth {
         add_action('admin_post_cfi_do_login', array($this, 'handle_login'));
         add_action('admin_post_nopriv_cfi_do_logout', array($this, 'handle_logout'));
         add_action('admin_post_cfi_do_logout', array($this, 'handle_logout'));
+        
+        // Override WordPress logout redirect to always go to /sign-in/
+        add_filter('logout_redirect', array($this, 'custom_logout_redirect'), 10, 3);
+        add_filter('wp_logout_url', array($this, 'custom_logout_url'), 10, 2);
+    }
+    
+    /**
+     * Custom logout redirect - always go to /sign-in/
+     */
+    public function custom_logout_redirect($redirect_to, $requested_redirect_to, $user) {
+        return home_url('/sign-in/?logout=1');
+    }
+    
+    /**
+     * Custom logout URL - use our admin-post handler
+     */
+    public function custom_logout_url($logout_url, $redirect) {
+        return admin_url('admin-post.php') . '?action=cfi_do_logout';
     }
     
     /**
