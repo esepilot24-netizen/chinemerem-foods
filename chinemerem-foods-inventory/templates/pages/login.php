@@ -1,7 +1,7 @@
 <?php
 /**
  * Login Page Template - Clean & Modern Design
- * Rebuilt from scratch for proper icon spacing and functionality
+ * Works both as shortcode template and standalone
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -10,8 +10,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Redirect if already logged in
-if (is_user_logged_in()) {
+// Redirect if already logged in (only if not in shortcode context)
+if (is_user_logged_in() && !defined('CFI_SHORTCODE_CONTEXT')) {
     wp_redirect(home_url('/home/'));
     exit;
 }
@@ -28,18 +28,12 @@ $logo_url = $login_logo ? $login_logo : CFI_PLUGIN_URL . 'assets/images/logo.svg
 $bg_style = $login_bg_image 
     ? "background-image: url('" . esc_url($login_bg_image) . "');"
     : "background: linear-gradient(135deg, #001943 0%, #002960 50%, #001943 100%);";
+
+// AJAX URL for form submission
+$ajax_url = admin_url('admin-ajax.php');
+$redirect_url = home_url('/home/');
 ?>
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo esc_html($business_name); ?> - Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
+<style>
         *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
@@ -342,8 +336,7 @@ $bg_style = $login_bg_image
             }
         }
     </style>
-</head>
-<body>
+
     <div class="login-page">
         <div class="login-card">
             <div class="login-header">
@@ -419,68 +412,79 @@ $bg_style = $login_bg_image
         var passwordInput = document.getElementById('password');
         
         // Toggle password visibility
-        toggleBtn.addEventListener('click', function() {
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
-            }
-        });
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleIcon.classList.remove('fa-eye');
+                    toggleIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    toggleIcon.classList.remove('fa-eye-slash');
+                    toggleIcon.classList.add('fa-eye');
+                }
+            });
+        }
         
         // Form submission
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            var username = document.getElementById('username').value.trim();
-            var password = document.getElementById('password').value;
-            var remember = document.getElementById('remember').checked;
-            
-            if (!username || !password) {
-                showError('Please enter username and password');
-                return;
-            }
-            
-            // Show loading
-            btn.disabled = true;
-            btnIcon.className = 'fas fa-spinner spinner';
-            btnText.textContent = 'Logging in...';
-            errorBox.classList.remove('visible');
-            
-            // Create form data
-            var formData = new FormData();
-            formData.append('action', 'cfi_login');
-            formData.append('username', username);
-            formData.append('password', password);
-            formData.append('remember', remember ? '1' : '0');
-            
-            // Send request
-            fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin'
-            })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                if (data.success) {
-                    btnIcon.className = 'fas fa-check';
-                    btnText.textContent = 'Success!';
-                    window.location.href = data.data.redirect || '<?php echo esc_url(home_url('/home/')); ?>';
-                } else {
-                    showError(data.data && data.data.message ? data.data.message : 'Login failed. Please try again.');
-                    resetButton();
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                var username = document.getElementById('username').value.trim();
+                var password = document.getElementById('password').value;
+                var remember = document.getElementById('remember').checked;
+                
+                if (!username || !password) {
+                    showError('Please enter username and password');
+                    return;
                 }
-            })
-            .catch(function(err) {
-                showError('Connection error. Please try again.');
-                resetButton();
+                
+                // Show loading
+                btn.disabled = true;
+                btnIcon.className = 'fas fa-spinner spinner';
+                btnText.textContent = 'Logging in...';
+                errorBox.classList.remove('visible');
+                
+                // Create form data
+                var formData = new FormData();
+                formData.append('action', 'cfi_login');
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('remember', remember ? '1' : '0');
+                
+                // Send request using the AJAX URL
+                var ajaxUrl = '<?php echo esc_url($ajax_url); ?>';
+                var redirectUrl = '<?php echo esc_url($redirect_url); ?>';
+                
+                fetch(ajaxUrl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        btnIcon.className = 'fas fa-check';
+                        btnText.textContent = 'Success!';
+                        window.location.href = data.data.redirect || redirectUrl;
+                    } else {
+                        showError(data.data && data.data.message ? data.data.message : 'Invalid username or password');
+                        resetButton();
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Login error:', err);
+                    showError('Connection error. Please check your internet and try again.');
+                    resetButton();
+                });
             });
-        });
+        }
         
         function showError(msg) {
             errorBox.textContent = msg;
@@ -494,5 +498,3 @@ $bg_style = $login_bg_image
         }
     })();
     </script>
-</body>
-</html>
