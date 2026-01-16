@@ -93,12 +93,14 @@ class CFI_Auth {
     
     /**
      * Handle logout AJAX request
+     * Logout is a safe operation - doesn't require nonce verification
      */
     public function handle_logout() {
+        // Perform logout
         wp_logout();
         
-        $login_page = get_page_by_path('cfi-login');
-        $redirect_url = $login_page ? get_permalink($login_page->ID) : home_url();
+        // Get the login page URL - try /sign-in/ first, then fallback
+        $redirect_url = home_url('/sign-in/');
         
         wp_send_json_success(array(
             'message' => __('Logged out successfully', 'chinemerem-foods'),
