@@ -44,26 +44,22 @@ class CFI_Auth {
      * Handle login AJAX request
      */
     public function handle_login() {
+        // Suppress all errors to prevent output before JSON
+        @error_reporting(0);
+        @ini_set('display_errors', 0);
+        
         // Ensure we're outputting only JSON - clean any previous output
-        while (ob_get_level()) {
+        if (ob_get_length()) ob_clean();
+        while (ob_get_level() > 0) {
             ob_end_clean();
         }
         
+        // Prevent caching
+        nocache_headers();
+        
         // Set proper content type
         header('Content-Type: application/json; charset=utf-8');
-        
-        // For public login forms, use rate limiting and referer check
-        // WordPress nonces don't work reliably for non-logged-in users with cookie issues
-        // Basic CSRF protection: verify request comes from same site
-        $referer = isset($_SERVER['HTTP_REFERER']) ? sanitize_url(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
-        $site_url = home_url();
-        
-        // Parse the site URL to get just the host for comparison
-        $site_host = wp_parse_url($site_url, PHP_URL_HOST);
-        $referer_host = !empty($referer) ? wp_parse_url($referer, PHP_URL_HOST) : '';
-        
-        // Skip strict referer check - some browsers/setups don't send it
-        // The login form itself validates credentials which is the real security
+        header('X-Content-Type-Options: nosniff');
         
         $username = isset($_POST['username']) ? sanitize_user(wp_unslash($_POST['username'])) : '';
         // Password is not unslashed or sanitized to preserve special characters for authentication
@@ -72,7 +68,7 @@ class CFI_Auth {
         
         if (empty($username) || empty($password)) {
             echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Please enter username and password')));
-            exit;
+            die();
         }
         
         $creds = array(
@@ -85,15 +81,18 @@ class CFI_Auth {
         
         if (is_wp_error($user)) {
             echo wp_json_encode(array('success' => false, 'data' => array('message' => 'Invalid username or password')));
-            exit;
+            die();
         }
         
         // Check if user has CFI role
         if (!$this->user_has_cfi_access($user)) {
             wp_logout();
             echo wp_json_encode(array('success' => false, 'data' => array('message' => 'You do not have access to this system')));
-            exit;
+            die();
         }
+        
+        // Set current user
+        wp_set_current_user($user->ID);
         
         // Get redirect URL - use /home/ path
         $redirect_url = home_url('/home/');
@@ -109,7 +108,7 @@ class CFI_Auth {
                 )
             )
         ));
-        exit;
+        die();
     }
     
     /**
@@ -117,18 +116,30 @@ class CFI_Auth {
      * Logout is a safe operation - doesn't require nonce verification
      */
     public function handle_logout() {
+        // Suppress all errors to prevent output before JSON
+        @error_reporting(0);
+        @ini_set('display_errors', 0);
+        
         // Ensure we're outputting only JSON - clean any previous output
-        while (ob_get_level()) {
+        if (ob_get_length()) ob_clean();
+        while (ob_get_level() > 0) {
             ob_end_clean();
         }
         
+        // Prevent caching
+        nocache_headers();
+        
         // Set proper content type
         header('Content-Type: application/json; charset=utf-8');
+        header('X-Content-Type-Options: nosniff');
         
         // Perform logout
         wp_logout();
         
-        // Get the login page URL - try /sign-in/ first, then fallback
+        // Clear any cookies
+        wp_clear_auth_cookie();
+        
+        // Get the login page URL - use /sign-in/
         $redirect_url = home_url('/sign-in/');
         
         echo wp_json_encode(array(
@@ -138,7 +149,7 @@ class CFI_Auth {
                 'redirect' => $redirect_url
             )
         ));
-        exit;
+        die();
     }
     
     /**

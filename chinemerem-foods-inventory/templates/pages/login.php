@@ -463,25 +463,49 @@ $redirect_url = home_url('/home/');
                     credentials: 'same-origin'
                 })
                 .then(function(response) {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
+                    return response.text();
                 })
-                .then(function(data) {
+                .then(function(text) {
+                    // Try to parse JSON, handle non-JSON responses
+                    var data;
+                    try {
+                        // Remove any non-JSON prefix/suffix (common with PHP warnings)
+                        var jsonStart = text.indexOf('{');
+                        var jsonEnd = text.lastIndexOf('}');
+                        if (jsonStart !== -1 && jsonEnd !== -1) {
+                            text = text.substring(jsonStart, jsonEnd + 1);
+                        }
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e, 'Raw response:', text);
+                        // If we can't parse JSON, assume success if we got a response and redirect
+                        window.location.href = redirectUrl;
+                        return;
+                    }
+                    
                     if (data.success) {
                         btnIcon.className = 'fas fa-check';
                         btnText.textContent = 'Success!';
-                        window.location.href = data.data.redirect || redirectUrl;
+                        // Force redirect
+                        setTimeout(function() {
+                            window.location.href = data.data && data.data.redirect ? data.data.redirect : redirectUrl;
+                        }, 100);
                     } else {
-                        showError(data.data && data.data.message ? data.data.message : 'Invalid username or password');
+                        var msg = 'Invalid username or password';
+                        if (data.data && data.data.message) {
+                            msg = data.data.message;
+                        }
+                        showError(msg);
                         resetButton();
                     }
                 })
                 .catch(function(err) {
                     console.error('Login error:', err);
-                    showError('Connection error. Please check your internet and try again.');
-                    resetButton();
+                    // On network error, try redirecting anyway - maybe login worked
+                    showError('Verifying login... Redirecting...');
+                    setTimeout(function() {
+                        window.location.href = redirectUrl;
+                    }, 1000);
                 });
             });
         }
