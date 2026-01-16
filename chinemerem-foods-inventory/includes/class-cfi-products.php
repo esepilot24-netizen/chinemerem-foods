@@ -43,12 +43,62 @@ class CFI_Products {
     }
     
     /**
-     * Add new product
+     * Add new product (or restore if previously deleted)
+     * This preserves history by reactivating deleted products with the same name
      */
     public static function add($name, $price, $unit = 'unit', $category = '') {
         global $wpdb;
         $table = CFI_Database::get_table('products');
         
+        // First check if a deleted product with the same name exists
+        $existing_deleted = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $table WHERE name = %s AND status = 'deleted' LIMIT 1",
+                $name
+            )
+        );
+        
+        if ($existing_deleted) {
+            // Restore the deleted product with updated price/unit/category
+            // This preserves all history references to this product_id
+            $result = $wpdb->update(
+                $table,
+                array(
+                    'price' => $price,
+                    'unit' => $unit,
+                    'category' => $category,
+                    'status' => 'active',
+                ),
+                array('id' => $existing_deleted->id),
+                array('%f', '%s', '%s', '%s'),
+                array('%d')
+            );
+            
+            if ($result !== false) {
+                // Re-initialize stock and packing records for today
+                try {
+                    if (class_exists('CFI_Stock') && method_exists('CFI_Stock', 'initialize_product')) {
+                        CFI_Stock::initialize_product($existing_deleted->id);
+                    }
+                } catch (Exception $e) {
+                    error_log('CFI: Stock initialization failed for restored product ' . $existing_deleted->id . ': ' . $e->getMessage());
+                }
+                
+                try {
+                    if (class_exists('CFI_Packing') && method_exists('CFI_Packing', 'initialize_product')) {
+                        CFI_Packing::initialize_product($existing_deleted->id);
+                    }
+                } catch (Exception $e) {
+                    error_log('CFI: Packing initialization failed for restored product ' . $existing_deleted->id . ': ' . $e->getMessage());
+                }
+                
+                return $existing_deleted->id; // Return the restored product ID
+            }
+            
+            return false;
+        }
+        
+        // No deleted product found with same name, create new one
         $result = $wpdb->insert(
             $table,
             array(

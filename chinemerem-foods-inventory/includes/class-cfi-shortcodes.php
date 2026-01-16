@@ -63,7 +63,7 @@ class CFI_Shortcodes {
         // Render footer (except for login page)
         if ($atts['template'] !== 'login') {
             $this->render_footer();
-            $this->render_mobile_nav();
+            // Mobile nav removed per user request
             $this->render_scroll_to_top();
         }
         
@@ -98,11 +98,7 @@ class CFI_Shortcodes {
                         <img src="<?php echo esc_url(CFI_PLUGIN_URL . 'assets/images/logo.svg'); ?>" alt="Chinemerem Foods">
                         <span>Chinemerem Foods</span>
                     </a>
-                    <button class="cfi-hamburger" id="cfi-menu-toggle" aria-label="Toggle Menu">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
+                    <!-- Hamburger removed per user request -->
                 </div>
                 
                 <nav class="cfi-nav" id="cfi-main-nav">
