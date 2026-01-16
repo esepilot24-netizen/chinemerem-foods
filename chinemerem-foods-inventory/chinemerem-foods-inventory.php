@@ -372,38 +372,63 @@ final class Chinemerem_Foods_Inventory {
     }
 
     /**
-     * Check authentication for plugin pages
+     * Check authentication for ALL pages
      * Force redirect non-logged users to login page
      */
     public function check_authentication() {
-        global $post;
-        
-        if (!$post) {
+        // Don't redirect on admin pages
+        if (is_admin()) {
             return;
         }
         
-        // List of CFI pages that require authentication
-        $cfi_pages = CFI_Pages::get_page_slugs();
-        
-        // Check if current page is a CFI page
-        $is_cfi_page = in_array($post->post_name, $cfi_pages) || 
-                       strpos($post->post_name, 'cfi-') === 0 ||
-                       has_shortcode($post->post_content, 'cfi_page') ||
-                       has_shortcode($post->post_content, 'cfi_login') ||
-                       has_shortcode($post->post_content, 'cfi_home');
-        
-        // If it's the login page, allow access
-        if ($post->post_name === 'cfi-login' || $post->post_name === 'login') {
+        // Don't redirect on AJAX requests
+        if (wp_doing_ajax()) {
             return;
         }
         
-        // Force redirect non-logged users to login page
-        if ($is_cfi_page && !is_user_logged_in()) {
-            $login_page = get_page_by_path('cfi-login');
-            if ($login_page) {
-                wp_redirect(get_permalink($login_page->ID));
-                exit;
+        // Don't redirect on REST API requests
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return;
+        }
+        
+        // Don't redirect on cron
+        if (wp_doing_cron()) {
+            return;
+        }
+        
+        // Don't redirect on WordPress login/registration pages
+        if (in_array($GLOBALS['pagenow'], array('wp-login.php', 'wp-register.php'))) {
+            return;
+        }
+        
+        // Custom login page URL - exclude from redirect
+        $login_url = '/sign-in/';
+        $current_url = $_SERVER['REQUEST_URI'];
+        
+        // Allowed URLs for non-logged users
+        $allowed_urls = array(
+            '/sign-in',
+            '/sign-in/',
+            '/login',
+            '/login/',
+            '/cfi-login',
+            '/cfi-login/',
+            '/wp-login.php',
+            '/wp-admin'
+        );
+        
+        // Check if current URL is an allowed page
+        foreach ($allowed_urls as $allowed) {
+            if (strpos($current_url, $allowed) !== false) {
+                return;
             }
+        }
+        
+        // Force redirect ALL non-logged users to login page
+        if (!is_user_logged_in()) {
+            $login_page_url = home_url($login_url);
+            wp_redirect($login_page_url);
+            exit;
         }
     }
 
