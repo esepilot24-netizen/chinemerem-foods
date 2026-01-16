@@ -302,9 +302,9 @@ if (isset($_GET['logged_out'])) {
             <div class="cfi-alert cfi-alert-success"><?php echo esc_html($success_message); ?></div>
         <?php endif; ?>
         
-        <!-- Standard form POST submission - most reliable -->
-        <form method="post" action="">
-            <input type="hidden" name="cfi_login_action" value="login">
+        <!-- Form submits to admin-post.php (WordPress standard, always works) -->
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <input type="hidden" name="action" value="cfi_do_login">
             
             <div class="cfi-form-group">
                 <label class="cfi-form-label" for="cfi_username">Username</label>
