@@ -394,6 +394,18 @@ function calculateClosing(input) {
     closingCell.textContent = closing.toFixed(1);
     closingCell.classList.toggle('negative', closing < 0);
 }
+
+// Smart input: select all content on focus so user can type directly
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('table input[type="number"]').forEach(function(input) {
+        input.addEventListener('focus', function() {
+            var self = this;
+            setTimeout(function() {
+                self.select();
+            }, 10);
+        });
+    });
+});
 </script>
 </body>
 </html>

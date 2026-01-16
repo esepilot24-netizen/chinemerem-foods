@@ -582,8 +582,18 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
             var homeInput = document.getElementById('home_amount');
             if (homeInput) homeInput.value = (method === 'home') ? homeInput.max : 0;
         }
-        // Initialize bank options visibility
+        // Initialize bank options visibility and set initial transfer amount
         document.getElementById('bank-options').style.display = 'block';
+        // Set initial transfer amount since transfer is selected by default
+        document.getElementById('transfer_amount').value = document.getElementById('transfer_amount').max;
+        
+        // Smart input: select all on focus
+        document.querySelectorAll('input[type="number"]').forEach(function(input) {
+            input.addEventListener('focus', function() {
+                var self = this;
+                setTimeout(function() { self.select(); }, 10);
+            });
+        });
         </script>
         <?php endif; ?>
     </div>

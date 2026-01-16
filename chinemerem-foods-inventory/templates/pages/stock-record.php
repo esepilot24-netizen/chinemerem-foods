@@ -120,5 +120,13 @@ jQuery(document).ready(function($) {
             CFI.stock.loadStock();
         }
     });
+    
+    // Smart input: select all on focus for number inputs
+    $(document).on('focus', '#cfi-stock-table input[type="number"]', function() {
+        var self = this;
+        setTimeout(function() {
+            $(self).select();
+        }, 10);
+    });
 });
 </script>

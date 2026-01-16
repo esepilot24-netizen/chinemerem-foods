@@ -674,6 +674,15 @@
                 const row = $(this).closest('tr');
                 CFI.stock.calculateClosing(row);
             });
+            
+            // Smart input: select all content on focus so user can type directly
+            $(document).on('focus', '.cfi-to-packing, #cfi-stock-table input[type="number"]', function() {
+                const $input = $(this);
+                // Small timeout to ensure focus is complete
+                setTimeout(function() {
+                    $input.select();
+                }, 10);
+            });
         },
 
         calculateClosing: function(row) {
