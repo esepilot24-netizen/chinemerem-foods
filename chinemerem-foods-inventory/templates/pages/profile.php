@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
 
 $user_info = CFI_Auth::get_current_user_info();
 $user = wp_get_current_user();
+
+// Build logout URL using admin-post.php
+$logout_url = admin_url('admin-post.php') . '?action=cfi_do_logout';
 ?>
 <main class="cfi-main">
     <div class="cfi-container">
@@ -46,23 +49,11 @@ $user = wp_get_current_user();
             </div>
             
             <div style="margin-top: 2rem; text-align: center;">
-                <button type="button" id="cfi-logout-profile" class="cfi-btn cfi-btn-danger">
+                <a href="<?php echo esc_url($logout_url); ?>" class="cfi-btn cfi-btn-danger">
                     <i class="fas fa-sign-out-alt"></i>
                     <?php esc_html_e('Logout', 'chinemerem-foods'); ?>
-                </button>
+                </a>
             </div>
         </div>
     </div>
 </main>
-
-<script>
-jQuery(document).ready(function($) {
-    $('#cfi-logout-profile').on('click', function() {
-        CFI.ajax.request('logout').then(function(data) {
-            window.location.href = data.redirect;
-        }).catch(function(error) {
-            CFI.toast.error(error);
-        });
-    });
-});
-</script>

@@ -1,7 +1,7 @@
 <?php
 /**
  * Authentication Handler Class
- * Simple login/logout using WordPress native functions
+ * Simple login/logout using WordPress admin-post handler
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -22,25 +22,26 @@ class CFI_Auth {
     }
     
     private function __construct() {
-        // Register AJAX handlers for login/logout
-        add_action('wp_ajax_nopriv_cfi_login', array($this, 'ajax_login'));
-        add_action('wp_ajax_cfi_login', array($this, 'ajax_login'));
-        add_action('wp_ajax_cfi_logout', array($this, 'ajax_logout'));
-        add_action('wp_ajax_nopriv_cfi_logout', array($this, 'ajax_logout'));
+        // Use admin_post hooks - these are guaranteed to work
+        add_action('admin_post_nopriv_cfi_do_login', array($this, 'handle_login'));
+        add_action('admin_post_cfi_do_login', array($this, 'handle_login'));
+        add_action('admin_post_nopriv_cfi_do_logout', array($this, 'handle_logout'));
+        add_action('admin_post_cfi_do_logout', array($this, 'handle_logout'));
     }
     
     /**
-     * AJAX Login Handler
+     * Handle Login Form Submission
      */
-    public function ajax_login() {
+    public function handle_login() {
         // Get credentials
         $username = isset($_POST['username']) ? sanitize_user($_POST['username']) : '';
         $password = isset($_POST['password']) ? $_POST['password'] : '';
-        $remember = isset($_POST['remember']) && $_POST['remember'] === 'true';
+        $remember = isset($_POST['remember']) && $_POST['remember'] === '1';
         
         // Validate
         if (empty($username) || empty($password)) {
-            wp_send_json_error(array('message' => 'Please enter username and password'));
+            wp_safe_redirect(home_url('/sign-in/?error=empty'));
+            exit;
         }
         
         // Try to login
@@ -53,31 +54,29 @@ class CFI_Auth {
         $user = wp_signon($creds, is_ssl());
         
         if (is_wp_error($user)) {
-            wp_send_json_error(array('message' => 'Invalid username or password'));
+            wp_safe_redirect(home_url('/sign-in/?error=invalid'));
+            exit;
         }
         
         // Check access
         if (!$this->user_has_cfi_access($user)) {
             wp_logout();
-            wp_send_json_error(array('message' => 'You do not have access to this system'));
+            wp_safe_redirect(home_url('/sign-in/?error=access'));
+            exit;
         }
         
-        // Success
-        wp_send_json_success(array(
-            'message' => 'Login successful',
-            'redirect' => home_url('/home/')
-        ));
+        // Success - redirect to home
+        wp_safe_redirect(home_url('/home/'));
+        exit;
     }
     
     /**
-     * AJAX Logout Handler
+     * Handle Logout
      */
-    public function ajax_logout() {
+    public function handle_logout() {
         wp_logout();
-        wp_send_json_success(array(
-            'message' => 'Logged out successfully',
-            'redirect' => home_url('/sign-in/')
-        ));
+        wp_safe_redirect(home_url('/sign-in/?logout=1'));
+        exit;
     }
     
     /**

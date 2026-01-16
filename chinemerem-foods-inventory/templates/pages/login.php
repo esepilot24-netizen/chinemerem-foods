@@ -1,7 +1,7 @@
 <?php
 /**
- * Login Page Template - Fresh Build
- * Simple username/password login form
+ * Login Page Template - Simple Form POST Version
+ * Uses WordPress admin-post.php for reliable form handling
  * 
  * @package Chinemerem_Foods_Inventory
  */
@@ -20,6 +20,16 @@ if (is_user_logged_in()) {
 $business_name = get_option('cfi_business_name', 'Chinemerem Foods');
 $login_logo = get_option('cfi_login_logo_image', '');
 $login_bg = get_option('cfi_login_background_image', '');
+
+// Get error/success messages from URL
+$error = isset($_GET['error']) ? sanitize_text_field($_GET['error']) : '';
+$logout = isset($_GET['logout']) ? true : false;
+
+$error_messages = array(
+    'empty' => 'Please enter username and password.',
+    'invalid' => 'Invalid username or password.',
+    'access' => 'You do not have access to this system.'
+);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,28 +106,22 @@ $login_bg = get_option('cfi_login_background_image', '');
             font-size: 14px;
             margin-top: 4px;
         }
-        .error-msg {
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-error {
             background: #fef2f2;
             border: 1px solid #fecaca;
             color: #dc2626;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
         }
-        .error-msg.show { display: block; }
-        .success-msg {
+        .alert-success {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             color: #16a34a;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
         }
-        .success-msg.show { display: block; }
         .form-group {
             margin-bottom: 20px;
         }
@@ -205,11 +209,6 @@ $login_bg = get_option('cfi_login_background_image', '');
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(0,25,67,0.3);
         }
-        .login-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
         .footer {
             text-align: center;
             margin-top: 24px;
@@ -226,18 +225,6 @@ $login_bg = get_option('cfi_login_background_image', '');
             text-decoration: none;
             font-weight: 600;
         }
-        .spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -253,15 +240,28 @@ $login_bg = get_option('cfi_login_background_image', '');
             <p>Inventory Management System</p>
         </div>
         
-        <div class="error-msg" id="errorMsg"></div>
-        <div class="success-msg" id="successMsg"></div>
+        <?php if ($error && isset($error_messages[$error])): ?>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <?php echo esc_html($error_messages[$error]); ?>
+            </div>
+        <?php endif; ?>
         
-        <form id="loginForm">
+        <?php if ($logout): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                You have been logged out successfully.
+            </div>
+        <?php endif; ?>
+        
+        <form action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="POST">
+            <input type="hidden" name="action" value="cfi_do_login">
+            
             <div class="form-group">
                 <label for="username">Username</label>
                 <div class="input-wrap">
                     <span class="icon"><i class="fas fa-user"></i></span>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
                 </div>
             </div>
             
@@ -277,14 +277,13 @@ $login_bg = get_option('cfi_login_background_image', '');
             </div>
             
             <div class="remember-row">
-                <input type="checkbox" id="remember" name="remember">
+                <input type="checkbox" id="remember" name="remember" value="1">
                 <label for="remember">Remember me</label>
             </div>
             
-            <button type="submit" class="login-btn" id="loginBtn">
-                <span class="spinner" id="spinner"></span>
-                <i class="fas fa-sign-in-alt" id="loginIcon"></i>
-                <span id="loginText">Login</span>
+            <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
             </button>
         </form>
         
@@ -295,8 +294,6 @@ $login_bg = get_option('cfi_login_background_image', '');
     </div>
     
     <script>
-    var ajaxUrl = '<?php echo esc_url(admin_url("admin-ajax.php")); ?>';
-    
     function togglePassword() {
         var pwd = document.getElementById('password');
         var icon = document.getElementById('eyeIcon');
@@ -308,84 +305,6 @@ $login_bg = get_option('cfi_login_background_image', '');
             icon.className = 'fas fa-eye';
         }
     }
-    
-    function showError(msg) {
-        var el = document.getElementById('errorMsg');
-        el.textContent = msg;
-        el.classList.add('show');
-        document.getElementById('successMsg').classList.remove('show');
-    }
-    
-    function showSuccess(msg) {
-        var el = document.getElementById('successMsg');
-        el.textContent = msg;
-        el.classList.add('show');
-        document.getElementById('errorMsg').classList.remove('show');
-    }
-    
-    function setLoading(loading) {
-        var btn = document.getElementById('loginBtn');
-        var spinner = document.getElementById('spinner');
-        var icon = document.getElementById('loginIcon');
-        var text = document.getElementById('loginText');
-        
-        if (loading) {
-            btn.disabled = true;
-            spinner.style.display = 'block';
-            icon.style.display = 'none';
-            text.textContent = 'Logging in...';
-        } else {
-            btn.disabled = false;
-            spinner.style.display = 'none';
-            icon.style.display = 'inline';
-            text.textContent = 'Login';
-        }
-    }
-    
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        var username = document.getElementById('username').value.trim();
-        var password = document.getElementById('password').value;
-        var remember = document.getElementById('remember').checked;
-        
-        if (!username || !password) {
-            showError('Please enter username and password');
-            return;
-        }
-        
-        setLoading(true);
-        document.getElementById('errorMsg').classList.remove('show');
-        
-        var formData = new FormData();
-        formData.append('action', 'cfi_login');
-        formData.append('username', username);
-        formData.append('password', password);
-        formData.append('remember', remember ? 'true' : 'false');
-        
-        fetch(ajaxUrl, {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-        })
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            setLoading(false);
-            if (data.success) {
-                showSuccess('Login successful! Redirecting...');
-                window.location.href = data.data.redirect;
-            } else {
-                showError(data.data.message || 'Login failed');
-            }
-        })
-        .catch(function(error) {
-            setLoading(false);
-            showError('Connection error. Please try again.');
-            console.error('Login error:', error);
-        });
-    });
     </script>
 </body>
 </html>
