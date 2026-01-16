@@ -57,17 +57,27 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
             if ($total_amount > 0) {
                 // Create order
                 $orders_table = $wpdb->prefix . 'cfi_orders';
+                $order_items_table = $wpdb->prefix . 'cfi_order_items';
                 $order_number = 'ORD-' . date('Ymd') . '-' . substr(uniqid(), -6);
+                
+                // Calculate total quantity for the order
+                $total_qty = 0;
+                $total_discount = 0;
+                foreach ($order_items as $item) {
+                    $total_qty += $item['quantity'];
+                    $total_discount += $item['discount'];
+                }
                 
                 $wpdb->insert(
                     $orders_table,
                     array(
                         'order_number' => $order_number,
                         'order_type' => 'credit',
+                        'customer_name' => $debtor->name,
                         'debtor_id' => $debtor_id,
-                        'items' => json_encode($order_items),
-                        'subtotal' => $total_amount,
-                        'total_discount' => 0,
+                        'total_quantity' => $total_qty,
+                        'total_amount' => $total_amount + $total_discount,
+                        'discount_amount' => $total_discount,
                         'grand_total' => $total_amount,
                         'payment_method' => 'credit',
                         'transfer_amount' => 0,
@@ -78,10 +88,26 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                         'order_time' => current_time('H:i:s'),
                         'status' => 'completed'
                     ),
-                    array('%s', '%s', '%d', '%s', '%f', '%f', '%f', '%s', '%f', '%f', '%s', '%d', '%s', '%s', '%s')
+                    array('%s', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%s', '%f', '%f', '%s', '%d', '%s', '%s', '%s')
                 );
                 
                 $order_id = $wpdb->insert_id;
+                
+                // Insert order items into cfi_order_items table (required for Debtor Order Summary)
+                foreach ($order_items as $item) {
+                    $wpdb->insert(
+                        $order_items_table,
+                        array(
+                            'order_id' => $order_id,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['quantity'],
+                            'price' => $item['price'],
+                            'discount' => $item['discount'],
+                            'total' => $item['total']
+                        ),
+                        array('%d', '%d', '%f', '%f', '%f', '%f')
+                    );
+                }
                 
                 // Update debtor balance
                 $balance_before = $debtor->total_debt;
