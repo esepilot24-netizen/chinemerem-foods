@@ -267,13 +267,7 @@
         },
 
         initLogout: function() {
-            $('#cfi-logout-btn').on('click', function() {
-                CFI.ajax.request('logout').then(function(data) {
-                    window.location.href = data.redirect;
-                }).catch(function(error) {
-                    CFI.toast.error(error);
-                });
-            });
+            // Logout is now a simple link, no JS needed
         }
     };
 

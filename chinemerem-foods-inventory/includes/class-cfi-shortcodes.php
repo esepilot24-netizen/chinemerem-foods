@@ -123,10 +123,10 @@ class CFI_Shortcodes {
                         <span class="cfi-date" id="cfi-current-date"></span>
                         <span class="cfi-time" id="cfi-current-time"></span>
                     </div>
-                    <button class="cfi-btn cfi-btn-outline" id="cfi-logout-btn">
+                    <a href="<?php echo esc_url(admin_url('admin-post.php') . '?action=cfi_do_logout'); ?>" class="cfi-btn cfi-btn-outline" id="cfi-logout-btn">
                         <i class="fas fa-sign-out-alt"></i>
                         <span><?php esc_html_e('Logout', 'chinemerem-foods'); ?></span>
-                    </button>
+                    </a>
                 </div>
             </div>
         </header>
