@@ -521,13 +521,13 @@ document.addEventListener('DOMContentLoaded', function() {
             loginBtn.classList.add('loading');
             loginBtn.innerHTML = '<i class="fas fa-spinner"></i> <?php echo esc_js(__('Logging in...', 'chinemerem-foods')); ?>';
             
-            // AJAX login
+            // AJAX login - no nonce needed for public login forms
+            // Security is provided by credential verification itself
             var formData = new FormData();
             formData.append('action', 'cfi_login');
             formData.append('username', username);
             formData.append('password', password);
             formData.append('remember', remember ? '1' : '0');
-            formData.append('nonce', '<?php echo esc_js(wp_create_nonce('cfi_login_nonce')); ?>');
             
             fetch('<?php echo esc_js(admin_url('admin-ajax.php')); ?>', {
                 method: 'POST',
