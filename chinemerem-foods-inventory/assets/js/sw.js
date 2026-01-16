@@ -3,7 +3,7 @@
  * Aggressive caching for blazing fast load times
  */
 
-const CACHE_NAME = 'cfi-cache-v2';
+const CACHE_NAME = 'cfi-cache-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache immediately
@@ -57,7 +57,7 @@ self.addEventListener('activate', function(event) {
     self.clients.claim();
 });
 
-// Fetch event - Cache-first strategy for speed
+// Fetch event - Cache-first strategy for speed, but skip dynamic pages
 self.addEventListener('fetch', function(event) {
     // Skip non-GET requests
     if (event.request.method !== 'GET') {
@@ -67,6 +67,48 @@ self.addEventListener('fetch', function(event) {
     // Skip admin requests and AJAX
     if (event.request.url.includes('/wp-admin/') || 
         event.request.url.includes('admin-ajax.php')) {
+        return;
+    }
+    
+    // NEVER cache dynamic pages - always fetch fresh data
+    // These pages must show real-time data without cache delays
+    const noCachePages = [
+        'transfer-history',
+        'financial-summary',
+        'financial-history',
+        'order-history',
+        'debtors-record',
+        'debtors-history',
+        'debtor-order-summary',
+        'stock-record',
+        'stock-history',
+        'packing-store',
+        'packing-history',
+        'expenses',
+        'expenses-history',
+        'cash-out',
+        'cash-out-history',
+        'not-supplied',
+        'not-supplied-history',
+        'supplied-today',
+        'supplied-today-history',
+        'reconciliation',
+        'reconciliation-history',
+        'take-order',
+        'import-record',
+        'import-history'
+    ];
+    
+    // Check if this is a dynamic page that should not be cached
+    const shouldBypassCache = noCachePages.some(page => event.request.url.includes(page));
+    
+    if (shouldBypassCache) {
+        // Network-only for dynamic pages - no caching at all
+        event.respondWith(
+            fetch(event.request).catch(function() {
+                return new Response('Network error', { status: 503 });
+            })
+        );
         return;
     }
 

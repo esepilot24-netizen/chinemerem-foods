@@ -2,11 +2,18 @@
 /**
  * Debtors Record Page Template - REBUILT FROM SCRATCH
  * Uses direct form POST submissions for reliability
+ * No caching for real-time updates
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Prevent caching - ensure fresh data every time
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
 
 // Ensure database tables exist
 CFI_Database::create_tables();
