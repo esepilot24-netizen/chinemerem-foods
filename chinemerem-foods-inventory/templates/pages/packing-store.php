@@ -17,6 +17,7 @@ $message_type = '';
 if (isset($_POST['cfi_save_packing']) && wp_verify_nonce($_POST['cfi_packing_nonce'], 'cfi_packing_store')) {
     global $wpdb;
     $packing_table = $wpdb->prefix . 'cfi_packing_store';
+    $stock_table = $wpdb->prefix . 'cfi_stock';
     $record_date = sanitize_text_field($_POST['record_date']);
     $items = isset($_POST['packing']) ? $_POST['packing'] : array();
     
@@ -25,11 +26,11 @@ if (isset($_POST['cfi_save_packing']) && wp_verify_nonce($_POST['cfi_packing_non
         $to_packing = floatval($data['to_packing']);
         $from_packing = floatval($data['from_packing']);
         $balance_in_packing = floatval($data['balance_in_packing']);
-        $from_sales = floatval($data['from_sales']);
+        $from_sales = floatval($data['from_sales']); // Read-only, synced from stock
         $to_sales = floatval($data['to_sales']);
         $balance_remark = sanitize_text_field($data['balance_remark']);
         
-        // Check if record exists
+        // Check if packing record exists
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM $packing_table WHERE product_id = %d AND record_date = %s",
             $product_id, $record_date
@@ -75,6 +76,35 @@ if (isset($_POST['cfi_save_packing']) && wp_verify_nonce($_POST['cfi_packing_non
                 array('%d', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%d')
             );
         }
+        
+        // Sync to_sales to stock table's from_packing_store (from pack in stock = to sales in packing)
+        if ($to_sales > 0) {
+            $existing_stock = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $stock_table WHERE product_id = %d AND record_date = %s",
+                $product_id, $record_date
+            ));
+            
+            if ($existing_stock) {
+                $wpdb->update(
+                    $stock_table,
+                    array('from_packing_store' => $to_sales),
+                    array('id' => $existing_stock->id),
+                    array('%f'),
+                    array('%d')
+                );
+            } else {
+                $wpdb->insert(
+                    $stock_table,
+                    array(
+                        'product_id' => $product_id,
+                        'record_date' => $record_date,
+                        'from_packing_store' => $to_sales,
+                        'staff_id' => get_current_user_id()
+                    ),
+                    array('%d', '%s', '%f', '%d')
+                );
+            }
+        }
     }
     
     $message = 'Packing store records saved successfully!';
@@ -88,6 +118,7 @@ $record_date = isset($_GET['date']) ? sanitize_text_field($_GET['date']) : curre
 // Get packing records for the date
 global $wpdb;
 $packing_table = $wpdb->prefix . 'cfi_packing_store';
+$stock_table = $wpdb->prefix . 'cfi_stock';
 $packing_records = array();
 $records = $wpdb->get_results($wpdb->prepare(
     "SELECT * FROM $packing_table WHERE record_date = %s",
@@ -95,6 +126,16 @@ $records = $wpdb->get_results($wpdb->prepare(
 ));
 foreach ($records as $r) {
     $packing_records[$r->product_id] = $r;
+}
+
+// Get stock records to sync from_sales (stock's to_packing_store = packing's from_sales)
+$stock_records = array();
+$stock_data = $wpdb->get_results($wpdb->prepare(
+    "SELECT * FROM $stock_table WHERE record_date = %s",
+    $record_date
+));
+foreach ($stock_data as $s) {
+    $stock_records[$s->product_id] = $s;
 }
 ?>
 <!DOCTYPE html>
@@ -282,11 +323,13 @@ foreach ($records as $r) {
                     <tbody>
                         <?php foreach ($products as $product) : 
                             $record = isset($packing_records[$product->id]) ? $packing_records[$product->id] : null;
+                            $stock_rec = isset($stock_records[$product->id]) ? $stock_records[$product->id] : null;
                             $opening = $record ? $record->opening : 0;
                             $to_packing = $record ? $record->to_packing : 0;
                             $from_packing = $record ? $record->from_packing : 0;
                             $balance = $record ? $record->balance_in_packing : 0;
-                            $from_sales = $record ? $record->from_sales : 0;
+                            // from_sales syncs from stock's to_packing_store
+                            $from_sales = $stock_rec ? floatval($stock_rec->to_packing_store) : 0;
                             $to_sales = $record ? $record->to_sales : 0;
                             $closing = $record ? $record->closing : 0;
                             $remark = $record ? $record->balance_remark : '';
@@ -304,7 +347,8 @@ foreach ($records as $r) {
                                 <input type="number" name="packing[<?php echo $product->id; ?>][balance_in_packing]" value="<?php echo esc_attr($balance); ?>" min="0" step="0.5">
                             </td>
                             <td>
-                                <input type="number" name="packing[<?php echo $product->id; ?>][from_sales]" value="<?php echo esc_attr($from_sales); ?>" min="0" step="0.5" onchange="calculateClosing(this)">
+                                <!-- from_sales is read-only, synced from Stock's to_packing_store -->
+                                <input type="number" name="packing[<?php echo $product->id; ?>][from_sales]" value="<?php echo esc_attr($from_sales); ?>" readonly style="background: #f1f5f9; cursor: not-allowed;" title="Synced from Stock's To Pack column">
                             </td>
                             <td>
                                 <input type="number" name="packing[<?php echo $product->id; ?>][to_sales]" value="<?php echo esc_attr($to_sales); ?>" min="0" step="0.5" onchange="calculateClosing(this)">

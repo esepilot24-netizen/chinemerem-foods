@@ -1,6 +1,7 @@
 <?php
 /**
- * Credit Order Product Summary Page Template
+ * Debtor Order Product Summary Page Template
+ * Renamed from Credit Order Summary - shows debtor orders
  */
 
 if (!defined('ABSPATH')) {
@@ -52,7 +53,7 @@ if (!defined('ABSPATH')) {
         <div class="cfi-page-header-custom">
             <h1>
                 <i class="fas fa-chart-pie"></i>
-                <?php esc_html_e('Credit Order Summary', 'chinemerem-foods'); ?>
+                <?php esc_html_e('Debtor Order Summary', 'chinemerem-foods'); ?>
             </h1>
             <div class="cfi-page-actions">
                 <?php
@@ -80,9 +81,9 @@ if (!defined('ABSPATH')) {
         <div class="cfi-glass">
             <h3>
                 <i class="fas fa-user-clock" style="color: var(--cfi-warning);"></i>
-                <?php esc_html_e('Credit Orders Summary', 'chinemerem-foods'); ?>
+                <?php esc_html_e('Debtor Orders Summary', 'chinemerem-foods'); ?>
             </h3>
-            <p style="color: var(--cfi-gray);"><?php esc_html_e('Products ordered today on credit (debtors). Resets daily.', 'chinemerem-foods'); ?></p>
+            <p style="color: var(--cfi-gray);"><?php esc_html_e('Products ordered today by debtors (credit orders). Resets daily.', 'chinemerem-foods'); ?></p>
             
             <div class="cfi-table-wrapper">
                 <table id="cfi-summary-table" class="cfi-table cfi-table-responsive">

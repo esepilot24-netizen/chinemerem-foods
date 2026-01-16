@@ -354,6 +354,13 @@ final class Chinemerem_Foods_Inventory {
             CFI_VERSION,
             true
         );
+        
+        // Localize script with nonce for AJAX requests
+        wp_localize_script('cfi-admin-script', 'cfiData', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('cfi_nonce'),
+            'pluginUrl' => CFI_PLUGIN_URL,
+        ));
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 /**
- * Reconciliation Calendar Page Template - REBUILT WITH POPUP MODAL & HISTORY
+ * Reconciliation Calendar Page Template - REBUILT FOR 3 STAFF RECONCILIATION
+ * Any user can reconcile - 3 different staff must sign each date
  */
 
 if (!defined('ABSPATH')) {
@@ -30,20 +31,41 @@ if (isset($_POST['cfi_reconcile_submit']) && wp_verify_nonce($_POST['cfi_reconci
     ));
     
     if ($existing) {
-        if ($existing->admin1_id && $existing->admin1_id == $current_user_id) {
-            $message = 'You have already signed this date. Another admin must sign.';
+        // Check if user already signed
+        $already_signed = ($existing->staff1_id == $current_user_id) || 
+                         ($existing->staff2_id == $current_user_id) || 
+                         ($existing->staff3_id == $current_user_id);
+        
+        if ($already_signed) {
+            $message = 'You have already signed this date. Another staff member must sign.';
             $message_type = 'error';
         } elseif ($existing->is_complete) {
             $message = 'This date has already been fully reconciled.';
             $message_type = 'error';
-        } elseif ($existing->admin1_id) {
-            // Second admin signing
+        } elseif (!$existing->staff2_id) {
+            // Second staff signing
             $wpdb->update(
                 $recon_table,
                 array(
-                    'admin2_id' => $current_user_id,
-                    'admin2_time' => current_time('mysql'),
-                    'admin2_remarks' => $remarks,
+                    'staff2_id' => $current_user_id,
+                    'staff2_time' => current_time('mysql'),
+                    'staff2_remarks' => $remarks,
+                ),
+                array('id' => $existing->id),
+                array('%d', '%s', '%s'),
+                array('%d')
+            );
+            
+            $message = 'Second staff signed (2/3). Waiting for third staff to complete reconciliation.';
+            $message_type = 'success';
+        } elseif (!$existing->staff3_id) {
+            // Third staff signing - complete!
+            $wpdb->update(
+                $recon_table,
+                array(
+                    'staff3_id' => $current_user_id,
+                    'staff3_time' => current_time('mysql'),
+                    'staff3_remarks' => $remarks,
                     'is_complete' => 1
                 ),
                 array('id' => $existing->id),
@@ -56,41 +78,43 @@ if (isset($_POST['cfi_reconcile_submit']) && wp_verify_nonce($_POST['cfi_reconci
                 $history_table,
                 array(
                     'reconcile_date' => $reconcile_date,
-                    'admin1_id' => $existing->admin1_id,
-                    'admin1_time' => $existing->admin1_time,
-                    'admin1_remarks' => $existing->admin1_remarks,
-                    'admin2_id' => $current_user_id,
-                    'admin2_time' => current_time('mysql'),
-                    'admin2_remarks' => $remarks,
+                    'staff1_id' => $existing->staff1_id,
+                    'staff1_time' => $existing->staff1_time,
+                    'staff1_remarks' => $existing->staff1_remarks,
+                    'staff2_id' => $existing->staff2_id,
+                    'staff2_time' => $existing->staff2_time,
+                    'staff2_remarks' => $existing->staff2_remarks,
+                    'staff3_id' => $current_user_id,
+                    'staff3_time' => current_time('mysql'),
+                    'staff3_remarks' => $remarks,
                     'status' => 'completed'
                 ),
-                array('%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
+                array('%s', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
             );
             
-            $message = 'Date reconciled successfully! Both admins have signed.';
+            $message = 'Date reconciled successfully! All 3 staff have signed.';
             $message_type = 'success';
         }
     } else {
-        // First admin signing
+        // First staff signing
         $wpdb->insert(
             $recon_table,
             array(
                 'reconcile_date' => $reconcile_date,
-                'admin1_id' => $current_user_id,
-                'admin1_time' => current_time('mysql'),
-                'admin1_remarks' => $remarks,
+                'staff1_id' => $current_user_id,
+                'staff1_time' => current_time('mysql'),
+                'staff1_remarks' => $remarks,
                 'is_complete' => 0
             ),
             array('%s', '%d', '%s', '%s', '%d')
         );
         
-        $message = 'First admin signed. Waiting for second admin to complete reconciliation.';
+        $message = 'First staff signed (1/3). Waiting for 2 more staff to reconcile.';
         $message_type = 'success';
     }
 }
 
 $current_month = isset($_GET['month']) ? sanitize_text_field($_GET['month']) : current_time('Y-m');
-$is_admin = CFI_Auth::is_cfi_admin();
 
 // Get reconciliation data for the month
 global $wpdb;
@@ -112,11 +136,13 @@ $history_table = $wpdb->prefix . 'cfi_reconciliation_history';
 $users_table = $wpdb->users;
 $history = $wpdb->get_results($wpdb->prepare(
     "SELECT h.*, 
-            u1.display_name as admin1_name, 
-            u2.display_name as admin2_name 
+            u1.display_name as staff1_name, 
+            u2.display_name as staff2_name,
+            u3.display_name as staff3_name 
      FROM $history_table h 
-     LEFT JOIN $users_table u1 ON h.admin1_id = u1.ID 
-     LEFT JOIN $users_table u2 ON h.admin2_id = u2.ID 
+     LEFT JOIN $users_table u1 ON h.staff1_id = u1.ID 
+     LEFT JOIN $users_table u2 ON h.staff2_id = u2.ID 
+     LEFT JOIN $users_table u3 ON h.staff3_id = u3.ID 
      WHERE h.reconcile_date BETWEEN %s AND %s 
      ORDER BY h.reconcile_date DESC",
     $month_start, $month_end
@@ -368,7 +394,13 @@ $today = current_time('Y-m-d');
                 $date = $current_month . '-' . str_pad($day, 2, '0', STR_PAD_LEFT);
                 $record = isset($recon_records[$date]) ? $recon_records[$date] : null;
                 $is_reconciled = $record && $record->is_complete;
-                $is_partial = $record && $record->admin1_id && !$record->is_complete;
+                $sign_count = 0;
+                if ($record) {
+                    if ($record->staff1_id) $sign_count++;
+                    if ($record->staff2_id) $sign_count++;
+                    if ($record->staff3_id) $sign_count++;
+                }
+                $is_partial = $record && $sign_count > 0 && !$record->is_complete;
                 $is_today = $date === $today;
                 $is_future = $date > $today;
                 
@@ -379,14 +411,14 @@ $today = current_time('Y-m-d');
                 if ($is_future || $is_reconciled) $classes[] = 'disabled';
             ?>
             <div class="<?php echo esc_attr(implode(' ', $classes)); ?>" 
-                 <?php if ($is_admin && !$is_future && !$is_reconciled) : ?>
+                 <?php if (!$is_future && !$is_reconciled) : ?>
                  onclick="openModal('<?php echo esc_attr($date); ?>')"
                  <?php endif; ?>>
                 <span class="day-number"><?php echo $day; ?></span>
                 <?php if ($is_reconciled) : ?>
                 <i class="fas fa-check status-icon complete"></i>
                 <?php elseif ($is_partial) : ?>
-                <i class="fas fa-user-check status-icon partial"></i>
+                <span class="status-icon partial" style="font-size: 0.6rem;"><?php echo $sign_count; ?>/3</span>
                 <?php endif; ?>
             </div>
             <?php endfor; ?>
@@ -395,11 +427,11 @@ $today = current_time('Y-m-d');
         <div class="legend">
             <div class="legend-item">
                 <span class="box reconciled"></span>
-                <span>Reconciled (Both admins signed)</span>
+                <span>Reconciled (3 staff signed)</span>
             </div>
             <div class="legend-item">
                 <span class="box partial"></span>
-                <span>Partial (Waiting for 2nd admin)</span>
+                <span>Partial (Waiting for more staff)</span>
             </div>
             <div class="legend-item">
                 <span class="box pending"></span>
@@ -407,11 +439,9 @@ $today = current_time('Y-m-d');
             </div>
         </div>
         
-        <?php if (!$is_admin) : ?>
         <div class="info-box">
-            <p><i class="fas fa-info-circle"></i> Only admins can mark dates as reconciled. Two different admins must sign each date.</p>
+            <p><i class="fas fa-info-circle"></i> Any user can sign reconciliation. 3 different staff members must sign each date.</p>
         </div>
-        <?php endif; ?>
     </div>
     
     <!-- History Section -->
@@ -421,14 +451,14 @@ $today = current_time('Y-m-d');
         <?php if (empty($history)) : ?>
         <p style="text-align: center; color: #64748b; padding: 2rem;">No reconciliation history for this month</p>
         <?php else : ?>
+        <div style="overflow-x: auto;">
         <table class="history-table">
             <thead>
                 <tr>
                     <th>Date</th>
-                    <th>Admin 1</th>
-                    <th>Admin 1 Remarks</th>
-                    <th>Admin 2</th>
-                    <th>Admin 2 Remarks</th>
+                    <th>Staff 1</th>
+                    <th>Staff 2</th>
+                    <th>Staff 3</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -436,15 +466,15 @@ $today = current_time('Y-m-d');
                 <?php foreach ($history as $h) : ?>
                 <tr>
                     <td><?php echo esc_html($h->reconcile_date); ?></td>
-                    <td><?php echo esc_html($h->admin1_name ?: '-'); ?></td>
-                    <td><?php echo esc_html($h->admin1_remarks ?: '-'); ?></td>
-                    <td><?php echo esc_html($h->admin2_name ?: '-'); ?></td>
-                    <td><?php echo esc_html($h->admin2_remarks ?: '-'); ?></td>
+                    <td><?php echo esc_html($h->staff1_name ?: '-'); ?></td>
+                    <td><?php echo esc_html($h->staff2_name ?: '-'); ?></td>
+                    <td><?php echo esc_html($h->staff3_name ?: '-'); ?></td>
                     <td><span class="status-badge completed">Completed</span></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <?php endif; ?>
     </div>
 </div>

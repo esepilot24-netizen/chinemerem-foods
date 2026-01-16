@@ -381,17 +381,20 @@ class CFI_Database {
             $wpdb->query("ALTER TABLE `$transfers_tbl` ADD COLUMN `customer_name` varchar(255) DEFAULT '' AFTER `source_id`");
         }
         
-        // Reconciliation table
+        // Reconciliation table - Updated for 3 staff
         $table_reconciliation = $wpdb->prefix . 'cfi_reconciliation';
         $sql_reconciliation = "CREATE TABLE IF NOT EXISTS $table_reconciliation (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             reconcile_date date NOT NULL,
-            admin1_id bigint(20) UNSIGNED DEFAULT NULL,
-            admin1_time datetime DEFAULT NULL,
-            admin1_remarks text DEFAULT '',
-            admin2_id bigint(20) UNSIGNED DEFAULT NULL,
-            admin2_time datetime DEFAULT NULL,
-            admin2_remarks text DEFAULT '',
+            staff1_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff1_time datetime DEFAULT NULL,
+            staff1_remarks text DEFAULT '',
+            staff2_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff2_time datetime DEFAULT NULL,
+            staff2_remarks text DEFAULT '',
+            staff3_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff3_time datetime DEFAULT NULL,
+            staff3_remarks text DEFAULT '',
             is_complete tinyint(1) DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -400,31 +403,72 @@ class CFI_Database {
         ) $charset_collate;";
         dbDelta($sql_reconciliation);
         
-        // Add remarks columns if they don't exist
+        // Add staff3 columns and rename admin to staff if needed
         $recon_table = $wpdb->prefix . 'cfi_reconciliation';
-        $row = $wpdb->get_results("SHOW COLUMNS FROM `$recon_table` LIKE 'admin1_remarks'");
-        if (empty($row)) {
-            $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `admin1_remarks` text DEFAULT '' AFTER `admin1_time`");
-            $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `admin2_remarks` text DEFAULT '' AFTER `admin2_time`");
+        
+        // Check if we need to migrate from admin to staff columns
+        $admin1_col = $wpdb->get_results("SHOW COLUMNS FROM `$recon_table` LIKE 'admin1_id'");
+        if (!empty($admin1_col)) {
+            // Rename admin columns to staff columns
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin1_id` `staff1_id` bigint(20) UNSIGNED DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin1_time` `staff1_time` datetime DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin1_remarks` `staff1_remarks` text DEFAULT ''");
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin2_id` `staff2_id` bigint(20) UNSIGNED DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin2_time` `staff2_time` datetime DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$recon_table` CHANGE COLUMN `admin2_remarks` `staff2_remarks` text DEFAULT ''");
         }
         
-        // Reconciliation history table
+        // Add staff3 columns if they don't exist
+        $staff3_col = $wpdb->get_results("SHOW COLUMNS FROM `$recon_table` LIKE 'staff3_id'");
+        if (empty($staff3_col)) {
+            $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `staff2_remarks`");
+            $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_time` datetime DEFAULT NULL AFTER `staff3_id`");
+            $wpdb->query("ALTER TABLE `$recon_table` ADD COLUMN `staff3_remarks` text DEFAULT '' AFTER `staff3_time`");
+            // Reset is_complete for partial records (they need 3rd signature now)
+            $wpdb->query("UPDATE `$recon_table` SET `is_complete` = 0 WHERE `staff3_id` IS NULL");
+        }
+        
+        // Reconciliation history table - Updated for 3 staff
         $table_reconciliation_history = $wpdb->prefix . 'cfi_reconciliation_history';
         $sql_reconciliation_history = "CREATE TABLE IF NOT EXISTS $table_reconciliation_history (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             reconcile_date date NOT NULL,
-            admin1_id bigint(20) UNSIGNED DEFAULT NULL,
-            admin1_time datetime DEFAULT NULL,
-            admin1_remarks text DEFAULT '',
-            admin2_id bigint(20) UNSIGNED DEFAULT NULL,
-            admin2_time datetime DEFAULT NULL,
-            admin2_remarks text DEFAULT '',
+            staff1_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff1_time datetime DEFAULT NULL,
+            staff1_remarks text DEFAULT '',
+            staff2_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff2_time datetime DEFAULT NULL,
+            staff2_remarks text DEFAULT '',
+            staff3_id bigint(20) UNSIGNED DEFAULT NULL,
+            staff3_time datetime DEFAULT NULL,
+            staff3_remarks text DEFAULT '',
             status varchar(50) DEFAULT 'completed',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY reconcile_date (reconcile_date)
         ) $charset_collate;";
         dbDelta($sql_reconciliation_history);
+        
+        // Add staff3 columns to history table if needed
+        $history_table = $wpdb->prefix . 'cfi_reconciliation_history';
+        
+        // Check if we need to migrate from admin to staff columns
+        $admin1_hist = $wpdb->get_results("SHOW COLUMNS FROM `$history_table` LIKE 'admin1_id'");
+        if (!empty($admin1_hist)) {
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin1_id` `staff1_id` bigint(20) UNSIGNED DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin1_time` `staff1_time` datetime DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin1_remarks` `staff1_remarks` text DEFAULT ''");
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin2_id` `staff2_id` bigint(20) UNSIGNED DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin2_time` `staff2_time` datetime DEFAULT NULL");
+            $wpdb->query("ALTER TABLE `$history_table` CHANGE COLUMN `admin2_remarks` `staff2_remarks` text DEFAULT ''");
+        }
+        
+        $staff3_hist = $wpdb->get_results("SHOW COLUMNS FROM `$history_table` LIKE 'staff3_id'");
+        if (empty($staff3_hist)) {
+            $wpdb->query("ALTER TABLE `$history_table` ADD COLUMN `staff3_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `staff2_remarks`");
+            $wpdb->query("ALTER TABLE `$history_table` ADD COLUMN `staff3_time` datetime DEFAULT NULL AFTER `staff3_id`");
+            $wpdb->query("ALTER TABLE `$history_table` ADD COLUMN `staff3_remarks` text DEFAULT '' AFTER `staff3_time`");
+        }
         
         // Backup log table
         $table_backup = $wpdb->prefix . 'cfi_backup_log';

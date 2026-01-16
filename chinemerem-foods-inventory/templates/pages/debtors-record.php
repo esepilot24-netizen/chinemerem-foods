@@ -221,6 +221,9 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
                     );
                 }
                 
+                // Update financial summary to include debtor payments
+                CFI_Financial::update_daily_summary(current_time('Y-m-d'));
+                
                 $message = 'Payment of ₦' . number_format($total_payment, 2) . ' recorded for ' . esc_html($debtor->name) . '. New balance: ₦' . number_format($new_balance, 2);
                 $message_type = 'success';
             }
