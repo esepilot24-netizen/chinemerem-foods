@@ -458,21 +458,21 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 <?php wp_nonce_field('cfi_clear_debt', 'cfi_clear_debt_nonce'); ?>
 <input type="hidden" name="debtor_id" value="<?php echo esc_attr($selected_debtor->id); ?>">
 <h4 style="color:#001943">Select Payment Method(s)</h4>
-<p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"><i class="fas fa-info-circle"></i> You can select multiple methods</p>
+<p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"><i class="fas fa-info-circle"></i> Click to select payment method(s)</p>
 <div class="payment-methods">
-<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" checked style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-transfer" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
+<div class="payment-method" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-transfer" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
 <div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-cash" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
 <?php if ($is_admin) : ?>
 <div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-home" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-home"></i><span>Home Calc</span></div>
 <?php endif; ?>
 </div>
-<div class="bank-options" id="bank-opts">
+<div class="bank-options" id="bank-opts" style="display:none">
 <h4 style="color:#001943">Select Bank</h4>
 <label class="bank-option"><input type="radio" name="bank_name" value="Moniepoint MFB" checked><span>Moniepoint MFB</span></label>
 <label class="bank-option"><input type="radio" name="bank_name" value="Access Bank PLC"><span>Access Bank PLC</span></label>
 </div>
 <div id="pay-amounts">
-<div class="form-group" id="transfer-grp"><label>Transfer Amount (₦)</label><input type="number" id="transfer_amount" name="transfer_amount" class="input" value="<?php echo esc_attr($selected_debtor->total_debt); ?>" min="0" step="0.01" oninput="updatePayTotal()"></div>
+<div class="form-group" id="transfer-grp" style="display:none"><label>Transfer Amount (₦)</label><input type="number" id="transfer_amount" name="transfer_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
 <div class="form-group" id="cash-grp" style="display:none"><label>Cash Amount (₦)</label><input type="number" id="cash_amount" name="cash_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
 <?php if ($is_admin) : ?>
 <div class="form-group" id="home-grp" style="display:none"><label>Home Calculation (₦)</label><input type="number" id="home_amount" name="home_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
@@ -480,7 +480,7 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 <input type="hidden" name="home_amount" value="0">
 <?php endif; ?>
 </div>
-<div style="margin-top:1rem;padding:1rem;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border-radius:8px;text-align:center"><span style="font-size:0.9rem">Total Payment:</span><strong id="pay-total" style="font-size:1.5rem;display:block">₦<?php echo number_format($selected_debtor->total_debt, 2); ?></strong></div>
+<div style="margin-top:1rem;padding:1rem;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border-radius:8px;text-align:center"><span style="font-size:0.9rem">Total Payment:</span><strong id="pay-total" style="font-size:1.5rem;display:block">₦0.00</strong></div>
 <div id="pay-warn" style="display:none;margin-top:0.5rem;padding:0.75rem;border-radius:8px;font-size:0.85rem"></div>
 <div style="margin-top:1.5rem;display:flex;gap:1rem;justify-content:flex-end">
 <a href="<?php echo esc_url(remove_query_arg(array('debtor','action'))); ?>" class="btn btn-outline">Cancel</a>
@@ -575,7 +575,7 @@ async function printOrderReceipt(){
 // Try Bluetooth printing first
 if ('bluetooth' in navigator) {
     var text = '';
-    var line = '--------------------------------';
+    var line = '================================';
     text += '       CHINEMEREM FOODS\n';
     text += '      Credit Order Receipt\n';
     text += line + '\n';
@@ -586,9 +586,9 @@ if ('bluetooth' in navigator) {
     text += 'Staff: <?php echo esc_js($order_receipt['staff']); ?>\n';
     text += line + '\n';
     text += 'ITEM              QTY    AMOUNT\n';
-    text += line + '\n';
+    text += '--------------------------------\n';
     <?php foreach ($order_receipt['items'] as $item) : ?>
-    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 16), 16); ?> <?php echo str_pad($item['quantity'], 4); ?> N<?php echo str_pad(number_format($item['total'], 0), 8, ' ', STR_PAD_LEFT); ?>\n';
+    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 16), 16); ?> <?php echo str_pad(intval($item['quantity']), 4); ?> N<?php echo str_pad(number_format($item['total'], 0), 8, ' ', STR_PAD_LEFT); ?>\n';
     <?php endforeach; ?>
     text += line + '\n';
     text += 'ORDER TOTAL:       N<?php echo str_pad(number_format($order_receipt['total'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
@@ -606,46 +606,53 @@ if ('bluetooth' in navigator) {
     }
 }
 
-// Fallback to browser print
-var w=window.open('','_blank','width=350,height=700');
+// Fallback to browser print with improved formatting
+var w=window.open('','_blank','width=400,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
 h+='@page{size:80mm auto;margin:0}';
 h+='*{margin:0;padding:0;box-sizing:border-box}';
-h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
-h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
-h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
-h+='.header p{font-size:11px;margin:0}';
-h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
-h+='.info p{display:flex;justify-content:space-between;margin:5px 0;font-size:12px}';
-h+='.items{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
-h+='.item{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
-h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
-h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
-h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
-h+='.no-print{margin:15px 0;text-align:center}';
-h+='.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
+h+='body{font-family:Arial,Helvetica,sans-serif;font-size:14px;width:80mm;max-width:80mm;margin:0;padding:3mm;line-height:1.5;color:#000;background:#fff}';
+h+='.header{text-align:center;padding:10px 0;border-bottom:3px double #000;margin-bottom:12px}';
+h+='.header h2{font-size:20px;font-weight:bold;margin:0 0 5px;letter-spacing:1px}';
+h+='.header p{font-size:14px;margin:0;font-weight:500}';
+h+='.info{margin:12px 0;padding:10px 0;border-bottom:2px solid #000}';
+h+='.info p{display:flex;justify-content:space-between;margin:8px 0;font-size:13px}';
+h+='.info p span:first-child{font-weight:600}';
+h+='.items-table{width:100%;margin:12px 0;border-collapse:collapse}';
+h+='.items-table th{background:#000;color:#fff;padding:8px 5px;font-size:13px;font-weight:bold;text-align:left;border:1px solid #000}';
+h+='.items-table th:nth-child(2),.items-table th:nth-child(3){text-align:center}';
+h+='.items-table td{padding:10px 5px;font-size:13px;border:1px solid #000;border-top:none}';
+h+='.items-table td:nth-child(2){text-align:center;font-weight:bold;font-size:14px}';
+h+='.items-table td:nth-child(3){text-align:right;font-weight:bold;font-size:14px}';
+h+='.items-table tr:nth-child(even){background:#f5f5f5}';
+h+='.total{margin:12px 0;padding:12px 0;border-top:3px double #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:8px 0;font-size:15px;font-weight:bold}';
+h+='.total .grand{font-size:18px;background:#000;color:#fff;padding:10px;margin:10px -3mm;width:calc(100% + 6mm)}';
+h+='.footer{text-align:center;margin-top:15px;padding-top:12px;border-top:2px dashed #000;font-size:12px}';
+h+='.credit-note{background:#ffe0e0;color:#c00;padding:10px;text-align:center;font-weight:bold;margin:10px 0;border:2px solid #c00}';
 h+='@media print{.no-print{display:none !important}}';
 h+='</style></head><body>';
-h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Credit Order Receipt</p></div>';
+h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>*** CREDIT ORDER ***</p></div>';
 h+='<div class="info">';
-h+='<p><span>Order #:</span><span><?php echo esc_js($order_receipt['order_number']); ?></span></p>';
+h+='<p><span>Order No:</span><span style="font-weight:bold"><?php echo esc_js($order_receipt['order_number']); ?></span></p>';
 h+='<p><span>Date:</span><span><?php echo esc_js($order_receipt['date']); ?></span></p>';
 h+='<p><span>Time:</span><span><?php echo esc_js($order_receipt['time']); ?></span></p>';
-h+='<p><span>Debtor:</span><span style="font-weight:bold"><?php echo esc_js($order_receipt['debtor_name']); ?></span></p>';
+h+='<p><span>Debtor:</span><span style="font-weight:bold;font-size:14px"><?php echo esc_js($order_receipt['debtor_name']); ?></span></p>';
 h+='<p><span>Staff:</span><span><?php echo esc_js($order_receipt['staff']); ?></span></p>';
 h+='</div>';
-h+='<div class="items">';
-h+='<div class="item" style="font-weight:bold;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:8px"><span>ITEM</span><span>QTY</span><span>AMT</span></div>';
+h+='<table class="items-table">';
+h+='<tr><th>ITEM</th><th>QTY</th><th>AMOUNT</th></tr>';
 <?php foreach ($order_receipt['items'] as $item) : ?>
-h+='<div class="item"><span style="flex:1"><?php echo esc_js($item['product_name']); ?></span><span style="width:30px;text-align:center"><?php echo esc_js($item['quantity']); ?></span><span style="width:60px;text-align:right">N<?php echo number_format($item['total'], 0); ?></span></div>';
+h+='<tr><td><?php echo esc_js($item['product_name']); ?></td><td><?php echo intval($item['quantity']); ?></td><td>₦<?php echo number_format($item['total'], 0); ?></td></tr>';
 <?php endforeach; ?>
-h+='</div>';
+h+='</table>';
 h+='<div class="total">';
-h+='<p><span>ORDER TOTAL:</span><span>N<?php echo number_format($order_receipt['total'], 0); ?></span></p>';
-h+='<p style="color:#cc0000"><span>NEW BALANCE:</span><span>N<?php echo number_format($order_receipt['new_balance'], 0); ?></span></p>';
+h+='<p class="grand"><span>ORDER TOTAL:</span><span>₦<?php echo number_format($order_receipt['total'], 0); ?></span></p>';
+h+='<p style="color:#c00"><span>NEW BALANCE:</span><span>₦<?php echo number_format($order_receipt['new_balance'], 0); ?></span></p>';
 h+='</div>';
-h+='<div class="footer"><p>This is a credit order - Payment pending</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+h+='<div class="credit-note">CREDIT ORDER - PAYMENT PENDING</div>';
+h+='<div class="footer"><p><strong>Thank you for your patronage!</strong></p><p style="margin-top:8px;font-size:10px">Powered by BendlessTech</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
