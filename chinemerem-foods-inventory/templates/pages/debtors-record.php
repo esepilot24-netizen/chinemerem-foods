@@ -203,10 +203,21 @@ if (isset($_GET['order_success']) && $_GET['order_success'] === '1') {
 // Process Clear Debt Form
 if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_debt_nonce'], 'cfi_clear_debt')) {
     $debtor_id = intval($_POST['debtor_id']);
-    $payment_method = sanitize_text_field($_POST['payment_method']);
-    $transfer_amount = floatval($_POST['transfer_amount']);
-    $cash_amount = floatval($_POST['cash_amount']);
-    $home_amount = floatval($_POST['home_amount']);
+    // Allow multiple payment methods - check checkboxes
+    $use_transfer = isset($_POST['use_transfer']) ? true : false;
+    $use_cash = isset($_POST['use_cash']) ? true : false;
+    $use_home = isset($_POST['use_home']) ? true : false;
+    
+    // Determine payment method string
+    $methods = array();
+    if ($use_transfer) $methods[] = 'transfer';
+    if ($use_cash) $methods[] = 'cash';
+    if ($use_home) $methods[] = 'home';
+    $payment_method = !empty($methods) ? implode('_', $methods) : 'cash';
+    
+    $transfer_amount = $use_transfer ? floatval($_POST['transfer_amount']) : 0;
+    $cash_amount = $use_cash ? floatval($_POST['cash_amount']) : 0;
+    $home_amount = $use_home ? floatval($_POST['home_amount']) : 0;
     $bank_name = sanitize_text_field($_POST['bank_name']);
     
     $total_payment = $transfer_amount + $cash_amount + $home_amount;
@@ -537,27 +548,30 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         <form method="POST" id="clear-debt-form">
             <?php wp_nonce_field('cfi_clear_debt', 'cfi_clear_debt_nonce'); ?>
             <input type="hidden" name="debtor_id" value="<?php echo esc_attr($selected_debtor->id); ?>">
-            <input type="hidden" name="payment_method" id="payment-method-input" value="transfer">
             
-            <h4 style="color: #001943;">Select Payment Method</h4>
+            <h4 style="color: #001943;">Select Payment Method(s)</h4>
+            <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem;"><i class="fas fa-info-circle"></i> You can select multiple payment methods for split payments</p>
             <div class="cfi-payment-methods">
-                <div class="cfi-payment-method selected" data-method="transfer" onclick="selectPaymentMethod(this)">
+                <div class="cfi-payment-method selected" data-method="transfer" onclick="toggleClearDebtPayment(this)">
+                    <input type="checkbox" name="use_transfer" id="use_transfer" checked style="display: none;">
                     <i class="fas fa-credit-card"></i>
                     <span>Transfer/Card</span>
                 </div>
-                <div class="cfi-payment-method" data-method="cash" onclick="selectPaymentMethod(this)">
+                <div class="cfi-payment-method" data-method="cash" onclick="toggleClearDebtPayment(this)">
+                    <input type="checkbox" name="use_cash" id="use_cash" style="display: none;">
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
                 </div>
                 <?php if ($is_admin) : ?>
-                <div class="cfi-payment-method" data-method="home" onclick="selectPaymentMethod(this)">
+                <div class="cfi-payment-method" data-method="home" onclick="toggleClearDebtPayment(this)">
+                    <input type="checkbox" name="use_home" id="use_home" style="display: none;">
                     <i class="fas fa-home"></i>
                     <span>Home Calc</span>
                 </div>
                 <?php endif; ?>
             </div>
             
-            <div class="cfi-bank-options" id="bank-options">
+            <div class="cfi-bank-options" id="bank-options" style="display: block;">
                 <h4 style="color: #001943;">Select Bank</h4>
                 <label class="cfi-bank-option">
                     <input type="radio" name="bank_name" value="Moniepoint MFB" checked>
@@ -570,22 +584,30 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
             </div>
             
             <div id="payment-amounts">
-                <div class="cfi-form-group" id="transfer-group">
+                <div class="cfi-form-group" id="transfer-group" style="display: block;">
                     <label for="transfer_amount">Transfer Amount (₦)</label>
-                    <input type="number" id="transfer_amount" name="transfer_amount" class="cfi-input" value="0" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>">
+                    <input type="number" id="transfer_amount" name="transfer_amount" class="cfi-input" value="<?php echo esc_attr($selected_debtor->total_debt); ?>" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>" oninput="updateClearDebtTotal()">
                 </div>
                 <div class="cfi-form-group" id="cash-group" style="display: none;">
                     <label for="cash_amount">Cash Amount (₦)</label>
-                    <input type="number" id="cash_amount" name="cash_amount" class="cfi-input" value="0" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>">
+                    <input type="number" id="cash_amount" name="cash_amount" class="cfi-input" value="0" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>" oninput="updateClearDebtTotal()">
                 </div>
                 <?php if ($is_admin) : ?>
                 <div class="cfi-form-group" id="home-group" style="display: none;">
                     <label for="home_amount">Home Calculation Amount (₦)</label>
-                    <input type="number" id="home_amount" name="home_amount" class="cfi-input" value="0" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>">
+                    <input type="number" id="home_amount" name="home_amount" class="cfi-input" value="0" min="0" step="0.01" max="<?php echo esc_attr($selected_debtor->total_debt); ?>" oninput="updateClearDebtTotal()">
                 </div>
                 <?php else : ?>
                 <input type="hidden" name="home_amount" value="0">
                 <?php endif; ?>
+            </div>
+            
+            <div id="payment-total-display" style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, #16a34a, #22c55e); color: white; border-radius: 8px; text-align: center;">
+                <span style="font-size: 0.9rem;">Total Payment:</span>
+                <span id="clear-debt-total" style="font-size: 1.5rem; font-weight: 700; display: block;">₦<?php echo number_format($selected_debtor->total_debt, 2); ?></span>
+            </div>
+            <div id="payment-balance-warning" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px; font-size: 0.85rem; color: #92400e;">
+                <i class="fas fa-exclamation-triangle"></i> <span id="payment-balance-text"></span>
             </div>
             
             <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
@@ -597,28 +619,62 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         </form>
         
         <script>
-        function selectPaymentMethod(el) {
-            document.querySelectorAll('.cfi-payment-method').forEach(function(m) { m.classList.remove('selected'); });
-            el.classList.add('selected');
+        var debtBalance = <?php echo floatval($selected_debtor->total_debt); ?>;
+        
+        function toggleClearDebtPayment(el) {
+            el.classList.toggle('selected');
             var method = el.dataset.method;
-            document.getElementById('payment-method-input').value = method;
+            var checkbox = el.querySelector('input[type="checkbox"]');
+            checkbox.checked = el.classList.contains('selected');
             
-            document.getElementById('transfer-group').style.display = (method === 'transfer') ? 'block' : 'none';
-            document.getElementById('cash-group').style.display = (method === 'cash') ? 'block' : 'none';
-            var homeGroup = document.getElementById('home-group');
-            if (homeGroup) homeGroup.style.display = (method === 'home') ? 'block' : 'none';
-            document.getElementById('bank-options').style.display = (method === 'transfer') ? 'block' : 'none';
+            if (method === 'transfer') {
+                document.getElementById('transfer-group').style.display = checkbox.checked ? 'block' : 'none';
+                document.getElementById('bank-options').style.display = checkbox.checked ? 'block' : 'none';
+                if (!checkbox.checked) document.getElementById('transfer_amount').value = 0;
+            } else if (method === 'cash') {
+                document.getElementById('cash-group').style.display = checkbox.checked ? 'block' : 'none';
+                if (!checkbox.checked) document.getElementById('cash_amount').value = 0;
+            } else if (method === 'home') {
+                var homeGroup = document.getElementById('home-group');
+                if (homeGroup) {
+                    homeGroup.style.display = checkbox.checked ? 'block' : 'none';
+                    if (!checkbox.checked) document.getElementById('home_amount').value = 0;
+                }
+            }
             
-            // Reset amounts
-            document.getElementById('transfer_amount').value = (method === 'transfer') ? document.getElementById('transfer_amount').max : 0;
-            document.getElementById('cash_amount').value = (method === 'cash') ? document.getElementById('cash_amount').max : 0;
-            var homeInput = document.getElementById('home_amount');
-            if (homeInput) homeInput.value = (method === 'home') ? homeInput.max : 0;
+            updateClearDebtTotal();
         }
-        // Initialize bank options visibility and set initial transfer amount
-        document.getElementById('bank-options').style.display = 'block';
-        // Set initial transfer amount since transfer is selected by default
-        document.getElementById('transfer_amount').value = document.getElementById('transfer_amount').max;
+        
+        function updateClearDebtTotal() {
+            var transferAmt = parseFloat(document.getElementById('transfer_amount').value) || 0;
+            var cashAmt = parseFloat(document.getElementById('cash_amount').value) || 0;
+            var homeInput = document.getElementById('home_amount');
+            var homeAmt = homeInput ? (parseFloat(homeInput.value) || 0) : 0;
+            
+            var total = transferAmt + cashAmt + homeAmt;
+            var formatted = '₦' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('clear-debt-total').textContent = formatted;
+            
+            // Show warning if payment doesn't match debt
+            var diff = debtBalance - total;
+            var warningDiv = document.getElementById('payment-balance-warning');
+            var warningText = document.getElementById('payment-balance-text');
+            
+            if (Math.abs(diff) > 0.01 && total > 0) {
+                warningDiv.style.display = 'block';
+                if (diff > 0) {
+                    warningText.textContent = 'Payment is ₦' + diff.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' less than outstanding debt';
+                    warningDiv.style.background = '#fee2e2';
+                    warningDiv.style.color = '#991b1b';
+                } else {
+                    warningText.textContent = 'Payment exceeds outstanding debt by ₦' + Math.abs(diff).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                    warningDiv.style.background = '#fef3c7';
+                    warningDiv.style.color = '#92400e';
+                }
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        }
         
         // Smart input: select all on focus
         document.querySelectorAll('input[type="number"]').forEach(function(input) {
@@ -833,6 +889,77 @@ function closeReceipt() {
     document.getElementById('receipt-modal').style.display = 'none';
     window.location.href = '<?php echo esc_url(remove_query_arg(array('debtor', 'action'))); ?>';
     <?php endif; ?>
+}
+</script>
+<?php endif; ?>
+
+<?php 
+// Show success popup modal if there's a success message from redirect
+$show_success_popup = (isset($_GET['order_success']) && $_GET['order_success'] === '1') || 
+                      (isset($_GET['payment_success']) && $_GET['payment_success'] === '1');
+if ($show_success_popup) : 
+    $popup_title = '';
+    $popup_message = '';
+    $popup_details = array();
+    
+    if (isset($_GET['order_success'])) {
+        $popup_title = 'Order Added Successfully!';
+        $popup_message = 'The order has been added to the debtor\'s account.';
+        $popup_details = array(
+            'Debtor' => urldecode($_GET['debtor_name'] ?? ''),
+            'Order Total' => '₦' . number_format(floatval($_GET['order_total'] ?? 0), 2),
+            'New Balance' => '₦' . number_format(floatval($_GET['new_balance'] ?? 0), 2)
+        );
+    } elseif (isset($_GET['payment_success'])) {
+        $popup_title = 'Payment Recorded Successfully!';
+        $popup_message = 'The payment has been recorded and the balance updated.';
+        $popup_details = array(
+            'Debtor' => urldecode($_GET['debtor_name'] ?? ''),
+            'Payment Amount' => '₦' . number_format(floatval($_GET['payment_amount'] ?? 0), 2),
+            'New Balance' => '₦' . number_format(floatval($_GET['new_balance'] ?? 0), 2)
+        );
+    }
+?>
+<!-- Success Popup Modal -->
+<div id="success-popup-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+    <div style="background: white; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); overflow: hidden; animation: popupSlide 0.3s ease;">
+        <div style="background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 1.5rem; text-align: center;">
+            <div style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                <i class="fas fa-check" style="font-size: 2rem; color: #16a34a;"></i>
+            </div>
+            <h2 style="margin: 0; font-size: 1.25rem;"><?php echo esc_html($popup_title); ?></h2>
+        </div>
+        <div style="padding: 1.5rem;">
+            <p style="text-align: center; color: #64748b; margin-bottom: 1rem;"><?php echo esc_html($popup_message); ?></p>
+            <?php if (!empty($popup_details)) : ?>
+            <div style="background: #f1f5f9; border-radius: 8px; padding: 1rem;">
+                <?php foreach ($popup_details as $label => $value) : ?>
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                    <span style="color: #64748b;"><?php echo esc_html($label); ?>:</span>
+                    <span style="font-weight: 700; color: #001943;"><?php echo esc_html($value); ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div style="padding: 1rem 1.5rem 1.5rem; text-align: center;">
+            <button onclick="closeSuccessPopup()" class="cfi-btn cfi-btn-success" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                <i class="fas fa-check"></i> Done
+            </button>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes popupSlide {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+</style>
+<script>
+function closeSuccessPopup() {
+    document.getElementById('success-popup-modal').style.display = 'none';
+    // Remove the URL parameters by redirecting to clean URL
+    window.location.href = '<?php echo esc_url(remove_query_arg(array('order_success', 'payment_success', 'debtor_name', 'order_total', 'payment_amount', 'new_balance'))); ?>';
 }
 </script>
 <?php endif; ?>
