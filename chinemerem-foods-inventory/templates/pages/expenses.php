@@ -367,11 +367,43 @@ function calculateTotal() {
     document.getElementById('running-total').textContent = '₦' + total.toLocaleString('en-NG', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 }
 
-// Add event listeners to the first row
+// Add event listeners and form validation
 document.addEventListener('DOMContentLoaded', function() {
     var firstInput = document.querySelector('.expense-row .amount-input');
     if (firstInput) {
         firstInput.addEventListener('input', calculateTotal);
+    }
+    
+    // Add form validation for negative values
+    var form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var hasNegatives = false;
+            var negativeFields = [];
+            
+            form.querySelectorAll('.amount-input').forEach(function(input) {
+                var val = parseFloat(input.value) || 0;
+                if (val < 0) {
+                    hasNegatives = true;
+                    var row = input.closest('.expense-row');
+                    var descInput = row.querySelector('input[type="text"]');
+                    var label = descInput ? descInput.value : 'Expense';
+                    negativeFields.push(label || 'Amount field');
+                    input.style.borderColor = '#ef4444';
+                    input.style.backgroundColor = '#fef2f2';
+                }
+            });
+            
+            if (hasNegatives) {
+                e.preventDefault();
+                if (typeof CFI !== 'undefined' && CFI.negativeValuePopup) {
+                    CFI.negativeValuePopup.show(negativeFields);
+                } else {
+                    alert('Negative values are not allowed! Please check your input and try again.');
+                }
+                return false;
+            }
+        });
     }
 });
 </script>

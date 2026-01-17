@@ -121,6 +121,12 @@ $products = CFI_Products::get_all();
 jQuery(document).ready(function($) {
     $('#cfi-submit-import').on('click', function() {
         const btn = $(this);
+        
+        // Validate no negative values
+        if (!CFI.utils.validateNoNegatives('#cfi-import-table')) {
+            return;
+        }
+        
         const sender = $('#import-sender').val();
         const driver = $('#import-driver').val();
         const imports = [];

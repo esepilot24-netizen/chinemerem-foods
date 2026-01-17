@@ -565,6 +565,16 @@ $cash_left = floatval($summary->cash_left ?? 0);
             var btn = this;
             var amount = parseFloat(document.getElementById('cfi-cash-to-bank').value) || 0;
             
+            // Check for negative values
+            if (amount < 0) {
+                if (typeof CFI !== 'undefined' && CFI.negativeValuePopup) {
+                    CFI.negativeValuePopup.show(['Cash to Bank']);
+                } else {
+                    alert('Negative values are not allowed! Please check your input and try again.');
+                }
+                return;
+            }
+            
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             
@@ -588,8 +598,18 @@ $cash_left = floatval($summary->cash_left ?? 0);
             })
             .then(function(data) {
                 if (data.success) {
-                    alert('Saved successfully!');
-                    location.reload();
+                    if (typeof CFI !== 'undefined' && CFI.successPopup) {
+                        CFI.successPopup.show({
+                            title: 'Saved!',
+                            message: 'Financial summary updated successfully.',
+                            details: {
+                                'Cash to Bank': '₦' + amount.toLocaleString('en-NG', {minimumFractionDigits: 0})
+                            }
+                        });
+                    } else {
+                        alert('Saved successfully!');
+                        location.reload();
+                    }
                 } else {
                     alert('Error: ' + (data.data || 'Failed to save'));
                     btn.disabled = false;

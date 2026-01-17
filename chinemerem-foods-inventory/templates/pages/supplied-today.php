@@ -114,6 +114,12 @@ $products = CFI_Products::get_all();
 jQuery(document).ready(function($) {
     $('#cfi-submit-supplied').on('click', function() {
         const btn = $(this);
+        
+        // Validate no negative values
+        if (!CFI.utils.validateNoNegatives('#cfi-supplied-table')) {
+            return;
+        }
+        
         const records = [];
         
         $('#cfi-supplied-table tbody tr').each(function() {

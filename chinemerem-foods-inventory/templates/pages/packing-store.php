@@ -421,6 +421,37 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 10);
         });
     });
+    
+    // Add form validation for negative values
+    var form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var hasNegatives = false;
+            var negativeFields = [];
+            
+            form.querySelectorAll('input[type="number"]').forEach(function(input) {
+                var val = parseFloat(input.value) || 0;
+                if (val < 0) {
+                    hasNegatives = true;
+                    var row = input.closest('tr');
+                    var label = row ? row.querySelector('td:first-child').textContent : 'Field';
+                    negativeFields.push(label);
+                    input.style.borderColor = '#ef4444';
+                    input.style.backgroundColor = '#fef2f2';
+                }
+            });
+            
+            if (hasNegatives) {
+                e.preventDefault();
+                if (typeof CFI !== 'undefined' && CFI.negativeValuePopup) {
+                    CFI.negativeValuePopup.show(negativeFields);
+                } else {
+                    alert('Negative values are not allowed! Please check your input and try again.');
+                }
+                return false;
+            }
+        });
+    }
 });
 </script>
 </body>

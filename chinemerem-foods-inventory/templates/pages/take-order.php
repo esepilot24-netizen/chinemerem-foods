@@ -794,6 +794,31 @@ function updatePaymentBalance() {
 
 // Show confirmation modal
 function showConfirmation() {
+    // Check for negative values first
+    var hasNegatives = false;
+    var negativeFields = [];
+    
+    document.querySelectorAll('#order-form input[type="number"]').forEach(function(input) {
+        var val = parseFloat(input.value) || 0;
+        if (val < 0) {
+            hasNegatives = true;
+            var row = input.closest('.order-row');
+            var label = row ? row.querySelector('.product-name')?.textContent : 'Field';
+            negativeFields.push(label || 'Amount field');
+            input.style.borderColor = '#ef4444';
+            input.style.backgroundColor = '#fef2f2';
+        }
+    });
+    
+    if (hasNegatives) {
+        if (typeof CFI !== 'undefined' && CFI.negativeValuePopup) {
+            CFI.negativeValuePopup.show(negativeFields);
+        } else {
+            alert('Negative values are not allowed! Please check your input and try again.');
+        }
+        return;
+    }
+    
     var confirmCheckbox = document.getElementById('confirm-payment');
     if (!confirmCheckbox.checked) {
         alert('Please confirm that payment has been received!');

@@ -154,6 +154,12 @@ jQuery(document).ready(function($) {
         const amount = parseFloat($('#cashout-amount').val()) || 0;
         const bank = $('input[name="cashout-bank"]:checked').val();
         
+        // Validate no negative values
+        if (amount < 0) {
+            CFI.negativeValuePopup.show(['Amount']);
+            return;
+        }
+        
         if (amount <= 0) {
             CFI.toast.warning('Please enter a valid amount');
             return;

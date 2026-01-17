@@ -556,6 +556,34 @@ if ($selected_debtor_id) {
             setTimeout(function() { self.select(); }, 10);
         });
     });
+    
+    // Add form validation for negative values
+    document.querySelector('form[id^="debtor-order-form"], form:has([name="cfi_debtor_order_submit"])')?.addEventListener('submit', function(e) {
+        var hasNegatives = false;
+        var negativeFields = [];
+        
+        this.querySelectorAll('input[type="number"]').forEach(function(input) {
+            var val = parseFloat(input.value) || 0;
+            if (val < 0) {
+                hasNegatives = true;
+                var row = input.closest('.order-row');
+                var label = row ? row.querySelector('.item-name')?.textContent : 'Field';
+                negativeFields.push(label || 'Amount field');
+                input.style.borderColor = '#ef4444';
+                input.style.backgroundColor = '#fef2f2';
+            }
+        });
+        
+        if (hasNegatives) {
+            e.preventDefault();
+            if (typeof CFI !== 'undefined' && CFI.negativeValuePopup) {
+                CFI.negativeValuePopup.show(negativeFields);
+            } else {
+                alert('Negative values are not allowed! Please check your input and try again.');
+            }
+            return false;
+        }
+    });
     </script>
     
     <?php elseif ($selected_debtor && $action === 'pay') : ?>

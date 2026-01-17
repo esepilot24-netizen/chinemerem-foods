@@ -100,6 +100,45 @@
         },
         
         /**
+         * Check if form has negative values - returns true if negatives found
+         */
+        hasNegativeValues: function(formContainer) {
+            let hasNegatives = false;
+            let negativeFields = [];
+            
+            $(formContainer).find('input[type="number"]').each(function() {
+                const val = parseFloat($(this).val()) || 0;
+                if (val < 0) {
+                    hasNegatives = true;
+                    const label = $(this).closest('tr').find('td:first').text() || 
+                                  $(this).closest('.cfi-form-group').find('label').text() ||
+                                  $(this).attr('placeholder') || 'Field';
+                    negativeFields.push(label);
+                    $(this).css('border-color', '#ef4444').css('background-color', '#fef2f2');
+                }
+            });
+            
+            return { hasNegatives, negativeFields };
+        },
+        
+        /**
+         * Validate form for negative values - shows warning popup and rejects submission
+         */
+        validateNoNegatives: function(formContainer) {
+            const result = this.hasNegativeValues(formContainer);
+            
+            if (result.hasNegatives) {
+                // Show error popup
+                CFI.negativeValuePopup.show(result.negativeFields);
+                return false;
+            }
+            
+            // Clear any previous error highlighting
+            $(formContainer).find('input[type="number"]').css('border-color', '').css('background-color', '');
+            return true;
+        },
+        
+        /**
          * Request Animation Frame throttle for smooth animations
          */
         rafThrottle: function(fn) {
@@ -299,6 +338,52 @@
                 overlay.remove();
                 if (refreshOnClose) {
                     location.reload();
+                }
+            });
+            
+            return overlay;
+        }
+    };
+
+    // Negative Value Error Popup - Shows when staff tries to submit negative values
+    CFI.negativeValuePopup = {
+        show: function(fields = []) {
+            const fieldsList = fields.length > 0 
+                ? '<ul style="text-align: left; margin: 1rem 0; padding-left: 1.5rem;">' + fields.map(f => `<li style="color: #ef4444; margin: 0.25rem 0;">${f}</li>`).join('') + '</ul>'
+                : '';
+            
+            const overlay = $(`
+                <div class="cfi-error-popup-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; animation: cfiPopupFadeIn 0.3s ease;">
+                    <div style="background: white; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); overflow: hidden; animation: cfiPopupSlide 0.3s ease;">
+                        <div style="background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 1.5rem; text-align: center;">
+                            <div style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #dc2626;"></i>
+                            </div>
+                            <h2 style="margin: 0; font-size: 1.25rem;">Negative Values Not Allowed!</h2>
+                        </div>
+                        <div style="padding: 1.5rem;">
+                            <p style="text-align: center; color: #64748b; margin-bottom: 0;">You cannot submit negative values. Please check your input and try again.</p>
+                            ${fieldsList}
+                        </div>
+                        <div style="padding: 1rem 1.5rem 1.5rem; text-align: center;">
+                            <button class="cfi-error-ok-btn cfi-btn" style="width: 100%; padding: 0.75rem; font-size: 1rem; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                <i class="fas fa-redo"></i> Check Input Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(overlay);
+            
+            overlay.find('.cfi-error-ok-btn').on('click', function() {
+                overlay.remove();
+            });
+            
+            // Also close on overlay click
+            overlay.on('click', function(e) {
+                if ($(e.target).is(overlay)) {
+                    overlay.remove();
                 }
             });
             
@@ -539,6 +624,11 @@
             $('#cfi-submit-order').on('click', async function() {
                 const btn = $(this);
                 
+                // Validate no negative values
+                if (!CFI.utils.validateNoNegatives('#cfi-order-table')) {
+                    return;
+                }
+                
                 // Validate payment confirmation
                 if (!$('#cfi-payment-confirm').is(':checked')) {
                     CFI.toast.warning('Please confirm payment has been received');
@@ -770,6 +860,12 @@
         initSubmit: function() {
             $('#cfi-save-stock').on('click', function() {
                 const btn = $(this);
+                
+                // Validate no negative values
+                if (!CFI.utils.validateNoNegatives('#cfi-stock-table')) {
+                    return;
+                }
+                
                 const stockData = [];
 
                 $('#cfi-stock-table tbody tr').each(function() {
