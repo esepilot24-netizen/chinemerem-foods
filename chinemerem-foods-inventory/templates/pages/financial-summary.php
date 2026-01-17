@@ -1,8 +1,8 @@
 <?php
 /**
- * Financial Summary Page Template - REBUILT FROM SCRATCH
- * With aggressive no-caching to always show fresh data
- * NO browser cache, NO bfcache, NO database cache
+ * Financial Summary Page Template - BRUTAL REBUILD
+ * MAXIMUM anti-caching - every single layer disabled
+ * NO browser cache, NO bfcache, NO database cache, NO WordPress cache
  */
 
 if (!defined('ABSPATH')) {
@@ -10,32 +10,58 @@ if (!defined('ABSPATH')) {
 }
 
 // ========================================
-// AGGRESSIVE ANTI-CACHING MEASURES
+// BRUTAL ANTI-CACHING - EVERY POSSIBLE LAYER
 // ========================================
 
-// 1. HTTP Headers to prevent ALL caching
-if (!headers_sent()) {
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
-    header('Cache-Control: post-check=0, pre-check=0', false);
-    header('Pragma: no-cache');
-    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-    header('Vary: *');
+// CRITICAL: If this is a soft refresh (no ?t= param), redirect with cache buster
+if (!isset($_GET['t']) || (time() - intval($_GET['t'])) > 5) {
+    // Add timestamp to URL to force server request
+    $clean_url = strtok($_SERVER['REQUEST_URI'], '?');
+    wp_redirect($clean_url . '?t=' . time());
+    exit;
 }
 
-// 2. Flush ALL WordPress caches
+// 1. HTTP Headers to prevent ALL caching (send as early as possible)
+if (!headers_sent()) {
+    // Maximum no-cache headers
+    header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, proxy-revalidate');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    header('Expires: Thu, 01 Jan 1970 00:00:01 GMT');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+    header('Vary: *');
+    header('ETag: "' . time() . '-' . mt_rand() . '"');
+}
+
+// 2. Disable WordPress object cache for this page
+wp_suspend_cache_addition(true);
+wp_suspend_cache_invalidation(true);
+
+// 3. Flush ALL WordPress caches
 global $wpdb;
 if (function_exists('wp_cache_flush')) {
     wp_cache_flush();
+}
+if (function_exists('wp_cache_delete')) {
+    // Delete any cached financial data
+    wp_cache_delete('cfi_financial_summary', 'cfi');
+    wp_cache_delete('cfi_orders_totals', 'cfi');
 }
 if (method_exists($wpdb, 'flush')) {
     $wpdb->flush();
 }
 
-// 3. Force fresh database connection
-$wpdb->check_connection();
+// 4. Close and reopen database connection to ensure fresh data
+if (method_exists($wpdb, 'close')) {
+    $wpdb->close();
+}
+$wpdb->check_connection(false);
 
-// 4. Unique page load ID to break any remaining cache
-$page_load_id = uniqid('cfi_fin_', true);
+// 5. Clear query cache if exists
+$wpdb->query("SET SESSION query_cache_type = OFF");
+
+// 6. Unique page load ID to detect stale pages
+$page_load_id = time() . '_' . mt_rand(100000, 999999);
 
 // 5. Get fresh data using direct SQL query with SQL_NO_CACHE
 $today = current_time('Y-m-d');
@@ -731,28 +757,25 @@ $cash_left = floatval($summary->cash_left ?? 0);
     calculateCashLeft();
     
     // CRITICAL: Handle browser back/forward cache (bfcache)
-    // When user navigates back or uses soft refresh, ensure fresh data
-    // This is a one-time check that doesn't cause infinite loops
-    (function handlePageCache() {
-        // Check if this is a cached page using Performance API
-        if (window.performance) {
-            var navEntries = performance.getEntriesByType('navigation');
-            if (navEntries.length > 0 && navEntries[0].type === 'back_forward') {
-                // Page was loaded from back/forward cache - force reload with cache bust
-                console.log('CFI: Detected back/forward navigation, reloading for fresh data');
-                window.location.replace(window.location.pathname + '?t=' + Date.now());
-                return;
-            }
+    // The PHP redirect with ?t= should handle most cases, but this is a backup
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            // Page was restored from bfcache - force hard reload
+            console.log('CFI: Page from bfcache, forcing reload');
+            window.location.reload(true);
         }
-        
-        // Check if page was restored from bfcache using persisted flag
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                // Page was restored from bfcache - force reload with cache bust
-                console.log('CFI: Detected bfcache restore, reloading for fresh data');
-                window.location.replace(window.location.pathname + '?t=' + Date.now());
-            }
-        }, {once: true}); // Only run once to prevent infinite loops
-    })();
+    });
+    
+    // Also handle focus - when user returns to tab, refresh if data might be stale
+    var lastFocusTime = Date.now();
+    window.addEventListener('focus', function() {
+        var now = Date.now();
+        // If more than 10 seconds since last focus, data might be stale
+        if (now - lastFocusTime > 10000) {
+            console.log('CFI: Tab focused after inactivity, reloading');
+            window.location.href = window.location.pathname + '?t=' + now;
+        }
+        lastFocusTime = now;
+    });
 })();
 </script>
