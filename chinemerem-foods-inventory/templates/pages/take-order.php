@@ -927,8 +927,155 @@ function submitOrder() {
     form.submit();
 }
 
-function printReceipt() {
-    // Create print window with proper initialization
+// Bluetooth thermal printer connection
+var bluetoothDevice = null;
+var printerCharacteristic = null;
+
+async function connectBluetoothPrinter() {
+    try {
+        // Request Bluetooth device with common thermal printer services
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+        });
+        
+        const server = await bluetoothDevice.gatt.connect();
+        
+        // Try common printer service UUIDs
+        const serviceUUIDs = [
+            '000018f0-0000-1000-8000-00805f9b34fb',
+            '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+            'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+        ];
+        
+        for (let uuid of serviceUUIDs) {
+            try {
+                const service = await server.getPrimaryService(uuid);
+                const characteristics = await service.getCharacteristics();
+                for (let char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        printerCharacteristic = char;
+                        return true;
+                    }
+                }
+            } catch (e) { continue; }
+        }
+        
+        // Fallback: get all services and find writable characteristic
+        const services = await server.getPrimaryServices();
+        for (let service of services) {
+            const chars = await service.getCharacteristics();
+            for (let char of chars) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    printerCharacteristic = char;
+                    return true;
+                }
+            }
+        }
+        
+        throw new Error('No writable characteristic found');
+    } catch (error) {
+        console.error('Bluetooth connection failed:', error);
+        return false;
+    }
+}
+
+async function printToBluetoothPrinter(text) {
+    if (!printerCharacteristic) {
+        const connected = await connectBluetoothPrinter();
+        if (!connected) {
+            alert('Could not connect to Bluetooth printer. Using browser print instead.');
+            return false;
+        }
+    }
+    
+    try {
+        // ESC/POS commands
+        const encoder = new TextEncoder();
+        const ESC = 0x1B;
+        const GS = 0x1D;
+        
+        // Initialize printer
+        let commands = new Uint8Array([ESC, 0x40]); // ESC @ - Initialize
+        await printerCharacteristic.writeValue(commands);
+        
+        // Print text
+        const textData = encoder.encode(text);
+        const chunkSize = 100;
+        for (let i = 0; i < textData.length; i += chunkSize) {
+            const chunk = textData.slice(i, i + chunkSize);
+            await printerCharacteristic.writeValue(chunk);
+            await new Promise(r => setTimeout(r, 50));
+        }
+        
+        // Feed paper and cut
+        commands = new Uint8Array([0x0A, 0x0A, 0x0A, GS, 0x56, 0x00]);
+        await printerCharacteristic.writeValue(commands);
+        
+        return true;
+    } catch (error) {
+        console.error('Print failed:', error);
+        return false;
+    }
+}
+
+function generateESCPOSReceipt() {
+    var text = '';
+    var line = '--------------------------------';
+    
+    // Header - centered
+    text += '       CHINEMEREM FOODS\n';
+    text += '        Sales Receipt\n';
+    text += line + '\n';
+    
+    // Order info
+    text += 'Order: <?php echo isset($receipt_data['order_number']) ? esc_js($receipt_data['order_number']) : ''; ?>\n';
+    text += 'Date: <?php echo isset($receipt_data['date']) ? esc_js($receipt_data['date']) : ''; ?>\n';
+    text += 'Time: <?php echo isset($receipt_data['time']) ? esc_js($receipt_data['time']) : ''; ?>\n';
+    <?php if (isset($receipt_data['customer_name']) && !empty($receipt_data['customer_name'])) : ?>
+    text += 'Customer: <?php echo esc_js($receipt_data['customer_name']); ?>\n';
+    <?php endif; ?>
+    text += 'Staff: <?php echo isset($receipt_data['staff']) ? esc_js($receipt_data['staff']) : ''; ?>\n';
+    text += line + '\n';
+    
+    // Items
+    text += 'ITEM              QTY    AMOUNT\n';
+    text += line + '\n';
+    <?php if (isset($receipt_data['items'])) : foreach ($receipt_data['items'] as $item) : ?>
+    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 16), 16); ?> <?php echo str_pad($item['quantity'], 4); ?> N<?php echo str_pad(number_format($item['total'], 0), 8, ' ', STR_PAD_LEFT); ?>\n';
+    <?php endforeach; endif; ?>
+    text += line + '\n';
+    
+    // Totals
+    text += 'Subtotal:          N<?php echo isset($receipt_data['subtotal']) ? str_pad(number_format($receipt_data['subtotal'], 0), 9, ' ', STR_PAD_LEFT) : '        0'; ?>\n';
+    <?php if (isset($receipt_data['discount']) && $receipt_data['discount'] > 0) : ?>
+    text += 'Discount:         -N<?php echo str_pad(number_format($receipt_data['discount'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    <?php endif; ?>
+    text += line + '\n';
+    text += 'GRAND TOTAL:       N<?php echo isset($receipt_data['grand_total']) ? str_pad(number_format($receipt_data['grand_total'], 0), 9, ' ', STR_PAD_LEFT) : '        0'; ?>\n';
+    text += 'Payment: <?php echo isset($receipt_data['payment_method']) ? ucfirst(esc_js($receipt_data['payment_method'])) : ''; ?>\n';
+    text += line + '\n';
+    
+    // Footer
+    text += '   Thank you for your patronage!\n';
+    text += '      Powered by BendlessTech\n';
+    text += '\n\n\n';
+    
+    return text;
+}
+
+async function printReceipt() {
+    // Try Bluetooth printing first if available
+    if ('bluetooth' in navigator) {
+        var receiptText = generateESCPOSReceipt();
+        var printed = await printToBluetoothPrinter(receiptText);
+        if (printed) {
+            alert('Receipt printed successfully!');
+            return;
+        }
+    }
+    
+    // Fallback to browser print dialog
     var printWindow = window.open('', '_blank', 'width=400,height=700');
     
     if (!printWindow) {

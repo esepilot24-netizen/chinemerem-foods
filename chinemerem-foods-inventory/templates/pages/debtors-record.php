@@ -555,7 +555,42 @@ if(Math.abs(diff)>0.01&&tot>0){w.style.display='block';if(diff>0){w.textContent=
 </div>
 </div>
 <script>
-function printOrderReceipt(){
+async function printOrderReceipt(){
+// Try Bluetooth printing first
+if ('bluetooth' in navigator) {
+    var text = '';
+    var line = '--------------------------------';
+    text += '       CHINEMEREM FOODS\n';
+    text += '      Credit Order Receipt\n';
+    text += line + '\n';
+    text += 'Order: <?php echo esc_js($order_receipt['order_number']); ?>\n';
+    text += 'Date: <?php echo esc_js($order_receipt['date']); ?>\n';
+    text += 'Time: <?php echo esc_js($order_receipt['time']); ?>\n';
+    text += 'Debtor: <?php echo esc_js($order_receipt['debtor_name']); ?>\n';
+    text += 'Staff: <?php echo esc_js($order_receipt['staff']); ?>\n';
+    text += line + '\n';
+    text += 'ITEM              QTY    AMOUNT\n';
+    text += line + '\n';
+    <?php foreach ($order_receipt['items'] as $item) : ?>
+    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 16), 16); ?> <?php echo str_pad($item['quantity'], 4); ?> N<?php echo str_pad(number_format($item['total'], 0), 8, ' ', STR_PAD_LEFT); ?>\n';
+    <?php endforeach; ?>
+    text += line + '\n';
+    text += 'ORDER TOTAL:       N<?php echo str_pad(number_format($order_receipt['total'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    text += 'NEW BALANCE:       N<?php echo str_pad(number_format($order_receipt['new_balance'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    text += line + '\n';
+    text += '  This is a credit order\n';
+    text += '      Payment pending\n';
+    text += '   Powered by BendlessTech\n';
+    text += '\n\n\n';
+    
+    var printed = await printToBluetoothPrinter(text);
+    if (printed) {
+        alert('Receipt printed successfully!');
+        return;
+    }
+}
+
+// Fallback to browser print
 var w=window.open('','_blank','width=350,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
@@ -633,7 +668,41 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 </div>
 </div>
 <script>
-function printPayReceipt(){
+async function printPayReceipt(){
+// Try Bluetooth printing first
+if ('bluetooth' in navigator) {
+    var text = '';
+    var line = '--------------------------------';
+    text += '       CHINEMEREM FOODS\n';
+    text += '     Debt Payment Receipt\n';
+    text += line + '\n';
+    text += 'Receipt: <?php echo esc_js($payment_receipt['receipt_number']); ?>\n';
+    text += 'Date: <?php echo esc_js($payment_receipt['date']); ?>\n';
+    text += 'Time: <?php echo esc_js($payment_receipt['time']); ?>\n';
+    text += 'Debtor: <?php echo esc_js($payment_receipt['debtor_name']); ?>\n';
+    text += 'Staff: <?php echo esc_js($payment_receipt['staff']); ?>\n';
+    text += line + '\n';
+    text += 'Balance Before:    N<?php echo str_pad(number_format($payment_receipt['balance_before'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    text += line + '\n';
+    text += 'PAYMENT AMOUNT:    N<?php echo str_pad(number_format($payment_receipt['payment_amount'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    <?php if ($payment_receipt['transfer_amount'] > 0) : ?>text += '  - Transfer:      N<?php echo str_pad(number_format($payment_receipt['transfer_amount'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';<?php endif; ?>
+    <?php if ($payment_receipt['cash_amount'] > 0) : ?>text += '  - Cash:          N<?php echo str_pad(number_format($payment_receipt['cash_amount'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';<?php endif; ?>
+    <?php if ($payment_receipt['home_amount'] > 0) : ?>text += '  - Home Calc:     N<?php echo str_pad(number_format($payment_receipt['home_amount'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';<?php endif; ?>
+    text += line + '\n';
+    text += 'NEW BALANCE:       N<?php echo str_pad(number_format($payment_receipt['new_balance'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
+    text += line + '\n';
+    text += '  Payment received with thanks!\n';
+    text += '     Powered by BendlessTech\n';
+    text += '\n\n\n';
+    
+    var printed = await printToBluetoothPrinter(text);
+    if (printed) {
+        alert('Receipt printed successfully!');
+        return;
+    }
+}
+
+// Fallback to browser print
 var w=window.open('','_blank','width=350,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
@@ -683,6 +752,68 @@ function closePayModal(){document.getElementById('pay-modal').style.display='non
 <?php endif; ?>
 
 <script>
+// Bluetooth thermal printer support
+var bluetoothDevice = null;
+var printerCharacteristic = null;
+
+async function connectBluetoothPrinter() {
+    try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const serviceUUIDs = ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2'];
+        for (let uuid of serviceUUIDs) {
+            try {
+                const service = await server.getPrimaryService(uuid);
+                const characteristics = await service.getCharacteristics();
+                for (let char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        printerCharacteristic = char;
+                        return true;
+                    }
+                }
+            } catch (e) { continue; }
+        }
+        const services = await server.getPrimaryServices();
+        for (let service of services) {
+            const chars = await service.getCharacteristics();
+            for (let char of chars) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    printerCharacteristic = char;
+                    return true;
+                }
+            }
+        }
+        throw new Error('No writable characteristic found');
+    } catch (error) {
+        console.error('Bluetooth connection failed:', error);
+        return false;
+    }
+}
+
+async function printToBluetoothPrinter(text) {
+    if (!printerCharacteristic) {
+        const connected = await connectBluetoothPrinter();
+        if (!connected) return false;
+    }
+    try {
+        const encoder = new TextEncoder();
+        await printerCharacteristic.writeValue(new Uint8Array([0x1B, 0x40]));
+        const textData = encoder.encode(text);
+        for (let i = 0; i < textData.length; i += 100) {
+            await printerCharacteristic.writeValue(textData.slice(i, i + 100));
+            await new Promise(r => setTimeout(r, 50));
+        }
+        await printerCharacteristic.writeValue(new Uint8Array([0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x00]));
+        return true;
+    } catch (error) {
+        console.error('Print failed:', error);
+        return false;
+    }
+}
+
 // Prevent form resubmission on back button - but do NOT auto-reload
 if(window.history.replaceState)window.history.replaceState(null,null,window.location.href);
 </script>
