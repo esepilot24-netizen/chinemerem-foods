@@ -922,31 +922,55 @@ function submitOrder() {
 }
 
 function printReceipt() {
-    // Generate text-format receipt for 80mm mobile printers
-    var receiptText = generateTextReceipt();
+    // Create print window with proper initialization
+    var printWindow = window.open('', '_blank', 'width=400,height=600');
     
-    // Create print window
-    var printWindow = window.open('', '', 'width=300,height=600');
-    if (printWindow) {
-        printWindow.document.write('<html><head><title>Receipt</title>');
-        printWindow.document.write('<style>');
-        printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
-        printWindow.document.write('pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; }');
-        printWindow.document.write('@media print { body { width: 72mm; margin: 0; padding: 1mm; } }');
-        printWindow.document.write('</style></head><body>');
-        printWindow.document.write('<pre>' + receiptText + '</pre>');
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.focus();
-        
-        // Print and then redirect
-        setTimeout(function() {
-            printWindow.print();
-            printWindow.close();
-            // Redirect to new order after print
-            window.location.href = window.location.pathname;
-        }, 500);
+    if (!printWindow) {
+        alert('Please allow popups to print receipts');
+        return;
     }
+    
+    var receiptHtml = document.getElementById('receipt-print-area').innerHTML;
+    
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Receipt</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
+    printWindow.document.write('.receipt-company { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }');
+    printWindow.document.write('.receipt-company h2 { margin: 0; font-size: 14px; }');
+    printWindow.document.write('.receipt-company p { margin: 0; font-size: 10px; }');
+    printWindow.document.write('.receipt-info p { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
+    printWindow.document.write('.receipt-items { border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 5px 0; padding: 5px 0; }');
+    printWindow.document.write('.receipt-item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
+    printWindow.document.write('.receipt-item .name { flex: 1; }');
+    printWindow.document.write('.receipt-item .qty { width: 30px; text-align: center; }');
+    printWindow.document.write('.receipt-item .price { width: 60px; text-align: right; }');
+    printWindow.document.write('.receipt-totals p { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
+    printWindow.document.write('.receipt-totals .grand { font-weight: bold; font-size: 12px; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }');
+    printWindow.document.write('.receipt-footer { text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000; font-size: 10px; }');
+    printWindow.document.write('@media print { @page { margin: 0; size: 72mm auto; } body { margin: 0; padding: 2mm; } }');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write(receiptHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    
+    // Use onload with fallback
+    var printed = false;
+    printWindow.onload = function() {
+        if (!printed) {
+            printed = true;
+            printWindow.focus();
+            printWindow.print();
+        }
+    };
+    
+    // Fallback timeout
+    setTimeout(function() {
+        if (!printed) {
+            printed = true;
+            printWindow.focus();
+            printWindow.print();
+        }
+    }, 800);
 }
 
 function generateTextReceipt() {

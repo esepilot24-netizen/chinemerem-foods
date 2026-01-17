@@ -1,6 +1,6 @@
 <?php
 /**
- * Order History Page Template - WITH SUPER ADMIN EDIT/DELETE
+ * Order History Page Template - WITH SUPER ADMIN EDIT/DELETE AND REPRINT RECEIPT
  */
 
 if (!defined('ABSPATH')) {
@@ -33,19 +33,34 @@ $today = current_time('Y-m-d');
 $start_date = isset($_GET['start']) ? sanitize_text_field($_GET['start']) : $today;
 $end_date = isset($_GET['end']) ? sanitize_text_field($_GET['end']) : $today;
 
-// Get orders
+// Get orders with items
 global $wpdb;
 $orders_table = $wpdb->prefix . 'cfi_orders';
+$items_table = $wpdb->prefix . 'cfi_order_items';
+$products_table = $wpdb->prefix . 'cfi_products';
 $users_table = $wpdb->users;
 
 $orders = $wpdb->get_results($wpdb->prepare(
-    "SELECT o.*, u.display_name as staff_name 
+    "SELECT SQL_NO_CACHE o.*, u.display_name as staff_name 
      FROM $orders_table o 
      LEFT JOIN $users_table u ON o.staff_id = u.ID 
      WHERE o.order_date BETWEEN %s AND %s 
      ORDER BY o.order_date DESC, o.order_time DESC",
     $start_date, $end_date
 ));
+
+// Get order items for receipt reprinting
+$order_items = array();
+foreach ($orders as $order) {
+    $items = $wpdb->get_results($wpdb->prepare(
+        "SELECT oi.*, p.name as product_name 
+         FROM $items_table oi 
+         LEFT JOIN $products_table p ON oi.product_id = p.id 
+         WHERE oi.order_id = %d",
+        $order->id
+    ));
+    $order_items[$order->id] = $items;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -77,17 +92,44 @@ $orders = $wpdb->get_results($wpdb->prepare(
         .amount { font-weight: 600; color: #16a34a; }
         .type-cash { color: #16a34a; font-weight: 600; }
         .type-credit { color: #dc2626; font-weight: 600; }
-        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .btn-print { background: #7c3aed; color: white; }
+        .btn-print:hover { background: #6d28d9; }
+        .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; margin: 0.1rem; }
         .btn-delete { background: #dc2626; color: white; }
         .btn-delete:hover { background: #b91c1c; }
         .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
         .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         .empty { text-align: center; padding: 2rem; color: #64748b; }
+        
+        /* Receipt Modal */
+        .receipt-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+        .receipt-modal.active { display: flex; }
+        .receipt-content { background: white; max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 12px; }
+        .receipt-header { background: #001943; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-radius: 12px 12px 0 0; }
+        .receipt-header h3 { margin: 0; font-size: 1rem; }
+        .receipt-body { padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.85rem; }
+        .receipt-company { text-align: center; border-bottom: 1px dashed #999; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+        .receipt-company h2 { margin: 0; font-size: 1rem; }
+        .receipt-company p { margin: 0; font-size: 0.75rem; color: #666; }
+        .receipt-info p { margin: 0.2rem 0; display: flex; justify-content: space-between; }
+        .receipt-items { border-top: 1px dashed #999; border-bottom: 1px dashed #999; margin: 0.5rem 0; padding: 0.5rem 0; }
+        .receipt-item { display: flex; justify-content: space-between; margin: 0.2rem 0; }
+        .receipt-totals p { margin: 0.2rem 0; display: flex; justify-content: space-between; }
+        .receipt-totals .grand { font-weight: bold; font-size: 1rem; border-top: 1px solid #333; padding-top: 0.3rem; margin-top: 0.3rem; }
+        .receipt-footer { text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #999; font-size: 0.75rem; color: #666; }
+        .receipt-actions { padding: 1rem; display: flex; gap: 0.5rem; justify-content: center; border-top: 1px solid #e2e8f0; }
+        
         @media (max-width: 768px) {
             .page-header { flex-direction: column; text-align: center; }
             .filters { flex-direction: column; }
             table { font-size: 0.7rem; }
+        }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 72mm; margin: 0; padding: 2mm; }
         }
     </style>
 </head>
@@ -137,12 +179,13 @@ $orders = $wpdb->get_results($wpdb->prepare(
                         <th>Total (₦)</th>
                         <th>Payment</th>
                         <th>Staff</th>
+                        <th>Receipt</th>
                         <?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($orders)) : ?>
-                    <tr><td colspan="<?php echo $is_super_admin ? '10' : '9'; ?>" class="empty">No orders found for this period</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '11' : '10'; ?>" class="empty">No orders found for this period</td></tr>
                     <?php else : ?>
                     <?php foreach ($orders as $order) : ?>
                     <tr>
@@ -155,6 +198,11 @@ $orders = $wpdb->get_results($wpdb->prepare(
                         <td class="amount">₦<?php echo number_format($order->grand_total, 0); ?></td>
                         <td><?php echo ucfirst(esc_html($order->payment_method)); ?></td>
                         <td><?php echo esc_html($order->staff_name ?: 'Unknown'); ?></td>
+                        <td>
+                            <button type="button" class="action-btn btn-print" onclick="showReceipt(<?php echo esc_attr($order->id); ?>)">
+                                <i class="fas fa-print"></i>
+                            </button>
+                        </td>
                         <?php if ($is_super_admin) : ?>
                         <td>
                             <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this order? This cannot be undone.');">
@@ -172,5 +220,166 @@ $orders = $wpdb->get_results($wpdb->prepare(
         </div>
     </div>
 </div>
+
+<!-- Receipt Modal -->
+<div class="receipt-modal" id="receipt-modal">
+    <div class="receipt-content">
+        <div class="receipt-header">
+            <h3><i class="fas fa-receipt"></i> Receipt</h3>
+            <button onclick="closeReceipt()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div class="receipt-body" id="receipt-body">
+            <!-- Will be filled by JavaScript -->
+        </div>
+        <div class="receipt-actions">
+            <button onclick="printReceipt()" class="btn btn-print">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button onclick="closeReceipt()" class="btn btn-primary">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden print area -->
+<div id="print-area" style="display: none;"></div>
+
+<!-- Store order data for JavaScript -->
+<script>
+var orderData = <?php echo json_encode(array_map(function($order) use ($order_items) {
+    $items = isset($order_items[$order->id]) ? $order_items[$order->id] : array();
+    return array(
+        'id' => $order->id,
+        'order_number' => $order->order_number,
+        'order_date' => $order->order_date,
+        'order_time' => substr($order->order_time, 0, 5),
+        'customer_name' => $order->customer_name,
+        'total_quantity' => $order->total_quantity,
+        'total_amount' => $order->total_amount,
+        'discount_amount' => $order->discount_amount,
+        'grand_total' => $order->grand_total,
+        'payment_method' => $order->payment_method,
+        'transfer_amount' => $order->transfer_amount,
+        'cash_amount' => $order->cash_amount,
+        'staff_name' => $order->staff_name,
+        'items' => array_map(function($item) {
+            return array(
+                'product_name' => $item->product_name,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'discount' => $item->discount,
+                'total' => $item->total
+            );
+        }, $items)
+    );
+}, $orders)); ?>;
+
+function showReceipt(orderId) {
+    var order = orderData.find(function(o) { return o.id == orderId; });
+    if (!order) {
+        alert('Order not found');
+        return;
+    }
+    
+    var html = '<div id="print-content">';
+    html += '<div class="receipt-company"><h2>CHINEMEREM FOODS</h2><p>Inventory Management System</p></div>';
+    html += '<div class="receipt-info">';
+    html += '<p><span>Order #:</span><strong>' + order.order_number + '</strong></p>';
+    html += '<p><span>Date:</span><span>' + order.order_date + '</span></p>';
+    html += '<p><span>Time:</span><span>' + order.order_time + '</span></p>';
+    if (order.customer_name) {
+        html += '<p><span>Customer:</span><span>' + order.customer_name + '</span></p>';
+    }
+    html += '<p><span>Staff:</span><span>' + (order.staff_name || 'Unknown') + '</span></p>';
+    html += '</div>';
+    
+    html += '<div class="receipt-items">';
+    html += '<div class="receipt-item" style="font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; margin-bottom: 0.25rem;">';
+    html += '<span>Item</span><span>Qty</span><span>Amount</span></div>';
+    
+    if (order.items && order.items.length > 0) {
+        order.items.forEach(function(item) {
+            html += '<div class="receipt-item">';
+            html += '<span>' + item.product_name + '</span>';
+            html += '<span>' + item.quantity + '</span>';
+            html += '<span>₦' + Number(item.total).toLocaleString() + '</span>';
+            html += '</div>';
+        });
+    }
+    html += '</div>';
+    
+    html += '<div class="receipt-totals">';
+    html += '<p><span>Subtotal:</span><span>₦' + Number(order.total_amount).toLocaleString() + '</span></p>';
+    if (order.discount_amount > 0) {
+        html += '<p><span>Discount:</span><span>-₦' + Number(order.discount_amount).toLocaleString() + '</span></p>';
+    }
+    html += '<p class="grand"><span>GRAND TOTAL:</span><span>₦' + Number(order.grand_total).toLocaleString() + '</span></p>';
+    html += '<p><span>Payment:</span><span>' + (order.payment_method || 'Cash') + '</span></p>';
+    if (order.transfer_amount > 0) {
+        html += '<p><span>Transfer:</span><span>₦' + Number(order.transfer_amount).toLocaleString() + '</span></p>';
+    }
+    if (order.cash_amount > 0) {
+        html += '<p><span>Cash:</span><span>₦' + Number(order.cash_amount).toLocaleString() + '</span></p>';
+    }
+    html += '</div>';
+    
+    html += '<div class="receipt-footer">';
+    html += '<p>Thank you for your patronage!</p>';
+    html += '<p>Powered by BendlessTech</p>';
+    html += '</div>';
+    html += '</div>';
+    
+    document.getElementById('receipt-body').innerHTML = html;
+    document.getElementById('receipt-modal').classList.add('active');
+}
+
+function closeReceipt() {
+    document.getElementById('receipt-modal').classList.remove('active');
+}
+
+function printReceipt() {
+    var printContent = document.getElementById('receipt-body').innerHTML;
+    var printArea = document.getElementById('print-area');
+    
+    // Create a new window for printing
+    var printWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Receipt</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
+    printWindow.document.write('.receipt-company { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }');
+    printWindow.document.write('.receipt-company h2 { margin: 0; font-size: 14px; }');
+    printWindow.document.write('.receipt-company p { margin: 0; font-size: 10px; }');
+    printWindow.document.write('.receipt-info p, .receipt-totals p { display: flex; justify-content: space-between; margin: 2px 0; }');
+    printWindow.document.write('.receipt-items { border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 5px 0; padding: 5px 0; }');
+    printWindow.document.write('.receipt-item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
+    printWindow.document.write('.receipt-totals .grand { font-weight: bold; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }');
+    printWindow.document.write('.receipt-footer { text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000; font-size: 10px; }');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write(printContent);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    
+    // Wait for content to load, then print
+    printWindow.onload = function() {
+        printWindow.focus();
+        printWindow.print();
+    };
+    
+    // Fallback if onload doesn't fire
+    setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
+}
+
+// Close modal when clicking outside
+document.getElementById('receipt-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReceipt();
+    }
+});
+</script>
 </body>
 </html>

@@ -95,6 +95,8 @@ $debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM $debtors_table WHERE s
         .btn-delete:hover { background: #b91c1c; }
         .btn-view { background: #001943; color: white; margin-right: 0.25rem; }
         .btn-view:hover { background: #002960; }
+        .btn-print { background: #7c3aed; color: white; }
+        .btn-print:hover { background: #6d28d9; }
         .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
         .alert-success { background: #dcfce7; color: #166534; }
         .alert-error { background: #fee2e2; color: #991b1b; }
@@ -203,8 +205,13 @@ $debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM $debtors_table WHERE s
                             <button type="button" class="action-btn btn-view" onclick="showOrderDetails(<?php echo esc_attr($record->order_id); ?>)">
                                 <i class="fas fa-eye"></i> View
                             </button>
+                            <button type="button" class="action-btn btn-print" onclick="reprintOrderReceipt(<?php echo esc_attr($record->order_id); ?>)">
+                                <i class="fas fa-print"></i>
+                            </button>
                             <?php elseif ($type === 'payment') : ?>
-                            <span style="font-size: 0.7rem; color: #64748b;"><?php echo esc_html($record->payment_method ?: '-'); ?></span>
+                            <button type="button" class="action-btn btn-print" onclick="reprintPaymentReceipt(<?php echo esc_attr($record->id); ?>)">
+                                <i class="fas fa-print"></i>
+                            </button>
                             <?php else : ?>
                             -
                             <?php endif; ?>
@@ -292,6 +299,152 @@ function showOrderDetails(orderId) {
 
 function closeOrderModal() {
     document.getElementById('order-modal').classList.remove('active');
+}
+
+// Reprint Order Receipt
+function reprintOrderReceipt(orderId) {
+    // Fetch order details and print
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id=' + orderId)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                var order = data.data;
+                printOrderReceipt(order);
+            } else {
+                alert('Failed to load order details for printing');
+            }
+        })
+        .catch(function(err) {
+            alert('Error loading order details');
+        });
+}
+
+// Reprint Payment Receipt
+function reprintPaymentReceipt(transactionId) {
+    // Get transaction data from the table
+    <?php 
+    $trans_data = array();
+    foreach ($history as $record) {
+        if ($record->transaction_type === 'payment') {
+            $trans_data[$record->id] = array(
+                'id' => $record->id,
+                'debtor_name' => $record->debtor_name,
+                'amount' => $record->amount,
+                'payment_method' => $record->payment_method,
+                'cash_amount' => $record->cash_amount,
+                'transfer_amount' => $record->transfer_amount,
+                'balance_before' => $record->balance_before,
+                'balance_after' => $record->balance_after,
+                'transaction_date' => $record->transaction_date,
+                'transaction_time' => substr($record->transaction_time, 0, 5),
+                'staff_name' => $record->staff_name
+            );
+        }
+    }
+    ?>
+    var paymentData = <?php echo json_encode($trans_data); ?>;
+    var payment = paymentData[transactionId];
+    
+    if (!payment) {
+        alert('Payment data not found');
+        return;
+    }
+    
+    printPaymentReceipt(payment);
+}
+
+function printOrderReceipt(order) {
+    var printWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    var html = '<!DOCTYPE html><html><head><title>Receipt</title>';
+    html += '<style>';
+    html += 'body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }';
+    html += '.center { text-align: center; }';
+    html += '.line { border-bottom: 1px dashed #000; margin: 5px 0; }';
+    html += '.row { display: flex; justify-content: space-between; margin: 2px 0; }';
+    html += '.bold { font-weight: bold; }';
+    html += '</style></head><body>';
+    
+    html += '<div class="center"><strong>CHINEMEREM FOODS</strong><br>Credit Order Receipt</div>';
+    html += '<div class="line"></div>';
+    html += '<div class="row"><span>Order #:</span><span>' + (order.order_number || 'N/A') + '</span></div>';
+    html += '<div class="row"><span>Date:</span><span>' + (order.order_date || 'N/A') + '</span></div>';
+    html += '<div class="row"><span>Customer:</span><span>' + (order.customer_name || 'N/A') + '</span></div>';
+    html += '<div class="line"></div>';
+    
+    if (order.items && order.items.length > 0) {
+        order.items.forEach(function(item) {
+            html += '<div class="row"><span>' + item.product_name + ' x' + item.quantity + '</span><span>N' + parseFloat(item.total).toLocaleString() + '</span></div>';
+        });
+    }
+    
+    html += '<div class="line"></div>';
+    html += '<div class="row bold"><span>TOTAL:</span><span>N' + parseFloat(order.grand_total || 0).toLocaleString() + '</span></div>';
+    html += '<div class="line"></div>';
+    html += '<div class="center">Powered by BendlessTech</div>';
+    html += '</body></html>';
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        printWindow.print();
+    };
+    
+    setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
+}
+
+function printPaymentReceipt(payment) {
+    var printWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    var html = '<!DOCTYPE html><html><head><title>Payment Receipt</title>';
+    html += '<style>';
+    html += 'body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }';
+    html += '.center { text-align: center; }';
+    html += '.line { border-bottom: 1px dashed #000; margin: 5px 0; }';
+    html += '.row { display: flex; justify-content: space-between; margin: 2px 0; }';
+    html += '.bold { font-weight: bold; }';
+    html += '</style></head><body>';
+    
+    html += '<div class="center"><strong>CHINEMEREM FOODS</strong><br>Debt Payment Receipt</div>';
+    html += '<div class="line"></div>';
+    html += '<div class="row"><span>Receipt #:</span><span>PAY-' + payment.id + '</span></div>';
+    html += '<div class="row"><span>Date:</span><span>' + payment.transaction_date + '</span></div>';
+    html += '<div class="row"><span>Time:</span><span>' + payment.transaction_time + '</span></div>';
+    html += '<div class="row"><span>Debtor:</span><span>' + payment.debtor_name + '</span></div>';
+    html += '<div class="line"></div>';
+    html += '<div class="row"><span>Balance Before:</span><span>N' + parseFloat(payment.balance_before).toLocaleString() + '</span></div>';
+    html += '<div class="row bold"><span>Amount Paid:</span><span>N' + parseFloat(payment.amount).toLocaleString() + '</span></div>';
+    html += '<div class="row"><span>Balance After:</span><span>N' + parseFloat(payment.balance_after).toLocaleString() + '</span></div>';
+    html += '<div class="line"></div>';
+    html += '<div class="row"><span>Payment Method:</span><span>' + (payment.payment_method || 'Cash') + '</span></div>';
+    if (payment.transfer_amount > 0) {
+        html += '<div class="row"><span>Transfer:</span><span>N' + parseFloat(payment.transfer_amount).toLocaleString() + '</span></div>';
+    }
+    if (payment.cash_amount > 0) {
+        html += '<div class="row"><span>Cash:</span><span>N' + parseFloat(payment.cash_amount).toLocaleString() + '</span></div>';
+    }
+    html += '<div class="row"><span>Staff:</span><span>' + (payment.staff_name || '-') + '</span></div>';
+    html += '<div class="line"></div>';
+    html += '<div class="center">Thank you for your payment!<br>Powered by BendlessTech</div>';
+    html += '</body></html>';
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        printWindow.print();
+    };
+    
+    setTimeout(function() {
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
 }
 
 // Close modal when clicking outside
