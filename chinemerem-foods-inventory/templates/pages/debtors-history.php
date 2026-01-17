@@ -43,7 +43,13 @@ if ($selected_debtor) {
     $params[] = $selected_debtor;
 }
 
-$query = "SELECT dt.*, d.name as debtor_name, u.display_name as staff_name 
+// Prevent caching - ensure fresh data every time
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+
+$query = "SELECT SQL_NO_CACHE dt.*, d.name as debtor_name, u.display_name as staff_name 
           FROM $trans_table dt 
           LEFT JOIN $debtors_table d ON dt.debtor_id = d.id 
           LEFT JOIN {$wpdb->users} u ON dt.staff_id = u.ID 
@@ -52,7 +58,9 @@ $query = "SELECT dt.*, d.name as debtor_name, u.display_name as staff_name
           LIMIT 100";
 
 $history = $wpdb->get_results($params ? $wpdb->prepare($query, $params) : $query);
-$debtors = CFI_Debtors::get_all();
+
+// Get debtors with fresh query
+$debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM $debtors_table WHERE status = 'active' ORDER BY name ASC");
 ?>
 <!DOCTYPE html>
 <html>

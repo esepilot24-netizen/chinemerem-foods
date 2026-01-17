@@ -157,8 +157,7 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                 // Update financial summary
                 CFI_Financial::update_daily_summary(current_time('Y-m-d'));
                 
-                // Store receipt data in session or use query params for redirect
-                // For simplicity, we'll show the receipt and then redirect happens when user clicks Done
+                // Store receipt data in a transient for display after redirect
                 $receipt_data = array(
                     'order_number' => $order_number,
                     'date' => current_time('d/m/Y'),
@@ -170,16 +169,21 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                     'staff' => wp_get_current_user()->display_name
                 );
                 
-                $message = 'Order added to ' . esc_html($debtor->name) . '\'s debt. New balance: ₦' . number_format($new_balance, 2);
-                $message_type = 'success';
+                // Store receipt in transient (expires in 5 minutes)
+                $transient_key = 'cfi_receipt_' . get_current_user_id() . '_' . time();
+                set_transient($transient_key, $receipt_data, 5 * MINUTE_IN_SECONDS);
                 
-                // Store that we need to redirect after receipt
-                $redirect_after_receipt = add_query_arg(array(
+                // Redirect immediately to prevent form resubmission and show fresh data
+                $redirect_url = add_query_arg(array(
                     'order_success' => '1',
                     'debtor_name' => urlencode($debtor->name),
                     'order_total' => $total_amount,
-                    'new_balance' => $new_balance
+                    'new_balance' => $new_balance,
+                    'receipt_key' => $transient_key
                 ), remove_query_arg(array('debtor', 'action')));
+                
+                wp_redirect($redirect_url);
+                exit;
             } else {
                 $message = 'Invalid order - no valid items';
                 $message_type = 'error';
@@ -191,13 +195,22 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
     }
 }
 
-// Check for order success redirect message
+// Check for order success redirect message and load receipt from transient
+$receipt_data = null;
 if (isset($_GET['order_success']) && $_GET['order_success'] === '1') {
     $debtor_name = isset($_GET['debtor_name']) ? urldecode($_GET['debtor_name']) : '';
     $order_total = isset($_GET['order_total']) ? floatval($_GET['order_total']) : 0;
     $new_balance = isset($_GET['new_balance']) ? floatval($_GET['new_balance']) : 0;
     $message = 'Order of ₦' . number_format($order_total, 2) . ' added to ' . esc_html($debtor_name) . '\'s debt. New balance: ₦' . number_format($new_balance, 2);
     $message_type = 'success';
+    
+    // Load receipt from transient if available
+    if (isset($_GET['receipt_key'])) {
+        $receipt_data = get_transient($_GET['receipt_key']);
+        if ($receipt_data) {
+            delete_transient($_GET['receipt_key']); // Delete after reading
+        }
+    }
 }
 
 // Process Clear Debt Form
@@ -322,14 +335,28 @@ if (isset($_GET['payment_success']) && $_GET['payment_success'] === '1') {
     $message_type = 'success';
 }
 
-// Get debtors and products
-$debtors = CFI_Debtors::get_all();
+// Get debtors and products - use fresh database queries to avoid any caching
+global $wpdb;
+$debtors_table = $wpdb->prefix . 'cfi_debtors';
+$products_table = $wpdb->prefix . 'cfi_products';
+
+// Force fresh query for debtors with SQL_NO_CACHE
+$debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM $debtors_table WHERE status = 'active' ORDER BY name ASC");
+
+// Get products
 $products = CFI_Products::get_all();
 
 // Check for selected debtor and action
 $selected_debtor_id = isset($_GET['debtor']) ? intval($_GET['debtor']) : 0;
 $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
-$selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) : null;
+// Use fresh database query for selected debtor
+$selected_debtor = null;
+if ($selected_debtor_id) {
+    $selected_debtor = $wpdb->get_row($wpdb->prepare(
+        "SELECT SQL_NO_CACHE * FROM $debtors_table WHERE id = %d",
+        $selected_debtor_id
+    ));
+}
 ?>
 <!DOCTYPE html>
 <html>
