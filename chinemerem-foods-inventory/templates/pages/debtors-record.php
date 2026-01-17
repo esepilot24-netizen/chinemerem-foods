@@ -363,8 +363,8 @@ table input{width:70px;padding:0.4rem;border:1px solid #e2e8f0;border-radius:4px
 .grand-display strong{font-size:2rem;font-weight:700}
 .payment-methods{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
 .payment-method{flex:1;min-width:100px;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
-.payment-method.selected{border-color:#001943;background:rgba(0,25,67,0.05)}
-.payment-method i:not(.check-indicator){display:block;font-size:1.5rem;color:#001943;margin-bottom:0.5rem}
+.payment-method.selected{border-color:#001943;background:rgba(0,25,67,0.15);box-shadow:0 0 0 3px rgba(0,25,67,0.1)}
+.payment-method i{display:block;font-size:1.5rem;color:#001943;margin-bottom:0.5rem}
 .bank-options{margin-bottom:1rem}
 .bank-option{display:flex;align-items:center;gap:0.5rem;padding:0.5rem;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:0.5rem;cursor:pointer}
 .bank-option input{width:auto}
@@ -460,19 +460,19 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 <h4 style="color:#001943">Select Payment Method(s)</h4>
 <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"><i class="fas fa-info-circle"></i> Click to select payment method(s)</p>
 <div class="payment-methods">
-<div class="payment-method" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-transfer" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
-<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-cash" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
+<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" style="display:none" checked><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
+<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
 <?php if ($is_admin) : ?>
-<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-home" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-home"></i><span>Home Calc</span></div>
+<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-home"></i><span>Home Calc</span></div>
 <?php endif; ?>
 </div>
-<div class="bank-options" id="bank-opts" style="display:none">
+<div class="bank-options" id="bank-opts" style="display:block">
 <h4 style="color:#001943">Select Bank</h4>
 <label class="bank-option"><input type="radio" name="bank_name" value="Moniepoint MFB" checked><span>Moniepoint MFB</span></label>
 <label class="bank-option"><input type="radio" name="bank_name" value="Access Bank PLC"><span>Access Bank PLC</span></label>
 </div>
 <div id="pay-amounts">
-<div class="form-group" id="transfer-grp" style="display:none"><label>Transfer Amount (₦)</label><input type="number" id="transfer_amount" name="transfer_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
+<div class="form-group" id="transfer-grp" style="display:block"><label>Transfer Amount (₦)</label><input type="number" id="transfer_amount" name="transfer_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
 <div class="form-group" id="cash-grp" style="display:none"><label>Cash Amount (₦)</label><input type="number" id="cash_amount" name="cash_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
 <?php if ($is_admin) : ?>
 <div class="form-group" id="home-grp" style="display:none"><label>Home Calculation (₦)</label><input type="number" id="home_amount" name="home_amount" class="input" value="0" min="0" step="0.01" oninput="updatePayTotal()"></div>
@@ -493,10 +493,7 @@ function togglePay(el){
     el.classList.toggle('selected');
     var m=el.dataset.method;
     var c=el.querySelector('input[type="checkbox"]');
-    var chkId = 'check-pay-' + m;
-    var chk = document.getElementById(chkId);
     c.checked=el.classList.contains('selected');
-    if(chk) chk.style.display=c.checked?'block':'none';
     if(m==='transfer'){
         document.getElementById('transfer-grp').style.display=c.checked?'block':'none';
         document.getElementById('bank-opts').style.display=c.checked?'block':'none';
