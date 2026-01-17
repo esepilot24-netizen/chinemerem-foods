@@ -364,7 +364,7 @@ table input{width:70px;padding:0.4rem;border:1px solid #e2e8f0;border-radius:4px
 .payment-methods{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
 .payment-method{flex:1;min-width:100px;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
 .payment-method.selected{border-color:#001943;background:rgba(0,25,67,0.05)}
-.payment-method i{display:block;font-size:1.5rem;color:#001943;margin-bottom:0.5rem}
+.payment-method i:not(.check-indicator){display:block;font-size:1.5rem;color:#001943;margin-bottom:0.5rem}
 .bank-options{margin-bottom:1rem}
 .bank-option{display:flex;align-items:center;gap:0.5rem;padding:0.5rem;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:0.5rem;cursor:pointer}
 .bank-option input{width:auto}

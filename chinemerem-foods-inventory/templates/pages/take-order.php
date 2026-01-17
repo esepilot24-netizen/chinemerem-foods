@@ -308,7 +308,7 @@ $products = CFI_Products::get_all();
         }
         .payment-method:hover { border-color: #001943; }
         .payment-method.selected { border-color: #001943; background: rgba(0,25,67,0.05); }
-        .payment-method i { display: block; font-size: 1.5rem; color: #001943; margin-bottom: 0.5rem; }
+        .payment-method i:not(.check-indicator) { display: block; font-size: 1.5rem; color: #001943; margin-bottom: 0.5rem; }
         .payment-method span { font-weight: 600; color: #001943; font-size: 0.85rem; }
         
         .bank-options, .customer-name-group { display: none; margin: 1rem 0; }
