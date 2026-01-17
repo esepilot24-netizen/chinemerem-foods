@@ -986,11 +986,15 @@ function printReceipt() {
     h += '</div>';
     
     h += '<div class="footer"><p>Thank you for your patronage!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-    h += '<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
     
     printWindow.document.write(h);
     printWindow.document.write('</body></html>');
     printWindow.document.close();
+    
+    // Auto-print after content loads
+    printWindow.onload = function() {
+        setTimeout(function() { printWindow.print(); }, 300);
+    };
 }
 
 function generateTextReceipt() {

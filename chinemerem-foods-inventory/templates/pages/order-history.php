@@ -364,14 +364,16 @@ function printReceipt() {
     printWindow.document.write('.receipt-totals p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
     printWindow.document.write('.receipt-totals .grand{font-size:14px;font-weight:bold}');
     printWindow.document.write('.receipt-footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}');
-    printWindow.document.write('.no-print{margin:15px 0;text-align:center}');
-    printWindow.document.write('.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}');
-    printWindow.document.write('@media print{.no-print{display:none !important}}');
+    printWindow.document.write('@media print{body{padding:0}}');
     printWindow.document.write('</style></head><body>');
     printWindow.document.write(printContent.innerHTML);
-    printWindow.document.write('<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
+    
+    // Auto-print after content loads
+    printWindow.onload = function() {
+        setTimeout(function() { printWindow.print(); }, 300);
+    };
 }
 
 // Close modal when clicking outside

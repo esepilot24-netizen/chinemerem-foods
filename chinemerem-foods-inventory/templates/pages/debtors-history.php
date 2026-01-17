@@ -294,9 +294,9 @@ h+='<div class="total">';
 h+='<p><span>ORDER TOTAL:</span><span>N'+parseFloat(o.grand_total||0).toLocaleString()+'</span></p>';
 h+='</div>';
 h+='<div class="footer"><p>This is a credit order - Payment pending</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
+w.onload=function(){setTimeout(function(){w.print()},300)};
 }
 
 function reprintPay(id){
@@ -341,9 +341,9 @@ var balColor=parseFloat(p.balance_after)>0?'#cc0000':'#008800';
 h+='<p style="color:'+balColor+'"><span>NEW BALANCE:</span><span>N'+parseFloat(p.balance_after).toLocaleString()+'</span></p>';
 h+='</div>';
 h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
+w.onload=function(){setTimeout(function(){w.print()},300)};
 }
 
 // Close modal on outside click or Escape

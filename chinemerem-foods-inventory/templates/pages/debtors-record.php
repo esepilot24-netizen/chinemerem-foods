@@ -595,9 +595,9 @@ h+='<p><span>ORDER TOTAL:</span><span>N<?php echo number_format($order_receipt['
 h+='<p style="color:#cc0000"><span>NEW BALANCE:</span><span>N<?php echo number_format($order_receipt['new_balance'], 0); ?></span></p>';
 h+='</div>';
 h+='<div class="footer"><p>This is a credit order - Payment pending</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
+w.onload=function(){setTimeout(function(){w.print()},300)};
 }
 function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('order_done','rk')))); ?>'}
 </script>
@@ -674,9 +674,9 @@ h+='<div class="total">';
 h+='<p style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#cc0000' : '#008800'; ?>"><span>NEW BALANCE:</span><span>N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>';
 h+='</div>';
 h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
+w.onload=function(){setTimeout(function(){w.print()},300)};
 }
 function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('pay_done','pk')))); ?>'}
 </script>
