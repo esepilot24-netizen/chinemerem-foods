@@ -232,6 +232,80 @@
         }
     };
 
+    // Success Popup - Center screen confirmation that requires user to click Done
+    CFI.successPopup = {
+        show: function(options = {}) {
+            const title = options.title || 'Success!';
+            const message = options.message || 'Operation completed successfully.';
+            const details = options.details || {};
+            const refreshOnClose = options.refreshOnClose !== false; // Default true
+            
+            // Build details HTML
+            let detailsHtml = '';
+            if (Object.keys(details).length > 0) {
+                detailsHtml = '<div style="background: #f1f5f9; border-radius: 8px; padding: 1rem; margin-top: 1rem;">';
+                for (const [label, value] of Object.entries(details)) {
+                    detailsHtml += `
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                            <span style="color: #64748b;">${label}:</span>
+                            <span style="font-weight: 700; color: #001943;">${value}</span>
+                        </div>
+                    `;
+                }
+                detailsHtml += '</div>';
+            }
+            
+            const overlay = $(`
+                <div class="cfi-success-popup-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; animation: cfiPopupFadeIn 0.3s ease;">
+                    <div style="background: white; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); overflow: hidden; animation: cfiPopupSlide 0.3s ease;">
+                        <div style="background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 1.5rem; text-align: center;">
+                            <div style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                                <i class="fas fa-check" style="font-size: 2rem; color: #16a34a;"></i>
+                            </div>
+                            <h2 style="margin: 0; font-size: 1.25rem;">${title}</h2>
+                        </div>
+                        <div style="padding: 1.5rem;">
+                            <p style="text-align: center; color: #64748b; margin-bottom: 0;">${message}</p>
+                            ${detailsHtml}
+                        </div>
+                        <div style="padding: 1rem 1.5rem 1.5rem; text-align: center;">
+                            <button class="cfi-success-done-btn cfi-btn cfi-btn-success" style="width: 100%; padding: 0.75rem; font-size: 1rem; background: #16a34a; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                <i class="fas fa-check"></i> Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            // Add animation styles if not already added
+            if (!$('#cfi-popup-styles').length) {
+                $('head').append(`
+                    <style id="cfi-popup-styles">
+                        @keyframes cfiPopupFadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes cfiPopupSlide {
+                            from { transform: scale(0.8); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                    </style>
+                `);
+            }
+            
+            $('body').append(overlay);
+            
+            overlay.find('.cfi-success-done-btn').on('click', function() {
+                overlay.remove();
+                if (refreshOnClose) {
+                    location.reload();
+                }
+            });
+            
+            return overlay;
+        }
+    };
+
     // Header Functions
     CFI.header = {
         init: function() {
@@ -711,11 +785,17 @@
                 CFI.ajax.request('update_stock', {
                     stock: JSON.stringify(stockData)
                 }).then(function(data) {
-                    CFI.toast.success(data.message);
-                    btn.prop('disabled', false).text('Save Changes');
+                    btn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Changes');
+                    CFI.successPopup.show({
+                        title: 'Stock Updated!',
+                        message: data.message || 'Stock record has been saved successfully.',
+                        details: {
+                            'Date': $('#cfi-stock-date').val()
+                        }
+                    });
                 }).catch(function(error) {
                     CFI.toast.error(error);
-                    btn.prop('disabled', false).text('Save Changes');
+                    btn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Changes');
                 });
             });
         }

@@ -140,8 +140,14 @@ jQuery(document).ready(function($) {
         CFI.ajax.request('add_supplied_today', {
             records: JSON.stringify(records)
         }).then(function(data) {
-            CFI.toast.success(data.message);
-            location.reload();
+            btn.prop('disabled', false).html('<i class="fas fa-save"></i> Submit Record');
+            CFI.successPopup.show({
+                title: 'Record Submitted!',
+                message: data.message || 'Supplied today record has been saved successfully.',
+                details: {
+                    'Items Recorded': records.length
+                }
+            });
         }).catch(function(error) {
             CFI.toast.error(error);
             btn.prop('disabled', false).html('<i class="fas fa-save"></i> Submit Record');

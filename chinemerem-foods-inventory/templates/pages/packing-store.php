@@ -273,6 +273,22 @@ foreach ($stock_data as $s) {
         <i class="fas fa-<?php echo $message_type === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
         <?php echo esc_html($message); ?>
     </div>
+    <?php if ($message_type === 'success') : ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof CFI !== 'undefined' && CFI.successPopup) {
+            CFI.successPopup.show({
+                title: 'Packing Store Updated!',
+                message: '<?php echo esc_js($message); ?>',
+                details: {
+                    'Date': '<?php echo esc_js(date('d M Y', strtotime($record_date))); ?>'
+                },
+                refreshOnClose: false
+            });
+        }
+    });
+    </script>
+    <?php endif; ?>
     <?php endif; ?>
     
     <div class="glass">

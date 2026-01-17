@@ -237,6 +237,20 @@ foreach ($expenses as $exp) {
         <i class="fas fa-<?php echo $message_type === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
         <?php echo esc_html($message); ?>
     </div>
+    <?php if ($message_type === 'success') : ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof CFI !== 'undefined' && CFI.successPopup) {
+            CFI.successPopup.show({
+                title: 'Expenses Recorded!',
+                message: '<?php echo esc_js($message); ?>',
+                details: {},
+                refreshOnClose: false
+            });
+        }
+    });
+    </script>
+    <?php endif; ?>
     <?php endif; ?>
     
     <div class="glass">

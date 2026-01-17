@@ -150,8 +150,16 @@ jQuery(document).ready(function($) {
         CFI.ajax.request('add_import', {
             imports: JSON.stringify(imports)
         }).then(function(data) {
-            CFI.toast.success(data.message);
-            location.reload();
+            btn.prop('disabled', false).html('<i class="fas fa-save"></i> Submit Import Record');
+            CFI.successPopup.show({
+                title: 'Import Recorded!',
+                message: data.message || 'Import record has been saved successfully.',
+                details: {
+                    'Items Recorded': imports.length,
+                    'Sender': sender || 'N/A',
+                    'Driver': driver || 'N/A'
+                }
+            });
         }).catch(function(error) {
             CFI.toast.error(error);
             btn.prop('disabled', false).html('<i class="fas fa-save"></i> Submit Import Record');

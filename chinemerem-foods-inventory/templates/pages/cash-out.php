@@ -165,8 +165,15 @@ jQuery(document).ready(function($) {
             amount: amount,
             bank_name: bank
         }).then(function(data) {
-            CFI.toast.success(data.message);
-            location.reload();
+            btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Register Cash Out');
+            CFI.successPopup.show({
+                title: 'Cash Out Recorded!',
+                message: data.message || 'Cash out has been recorded successfully.',
+                details: {
+                    'Amount': '₦' + amount.toLocaleString('en-NG', {minimumFractionDigits: 0}),
+                    'Bank': bank
+                }
+            });
         }).catch(function(error) {
             CFI.toast.error(error);
             btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Register Cash Out');
