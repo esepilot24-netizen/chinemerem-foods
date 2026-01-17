@@ -65,6 +65,10 @@ $debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM $debtors_table WHERE s
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- CRITICAL: Prevent all caching to ensure fresh data -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .cfi-history-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
