@@ -282,6 +282,9 @@ function showReceipt(orderId) {
         return;
     }
     
+    // Store order for Bluetooth printing
+    currentPrintOrder = order;
+    
     var html = '<div id="print-content">';
     html += '<div class="receipt-company"><h2>CHINEMEREM FOODS</h2><p>Inventory Management System</p></div>';
     html += '<div class="receipt-info">';
@@ -335,17 +338,135 @@ function showReceipt(orderId) {
 }
 
 function closeReceipt() {
+    currentPrintOrder = null;
     document.getElementById('receipt-modal').classList.remove('active');
 }
 
-function printReceipt() {
+// Bluetooth thermal printer support
+var bluetoothDevice = null;
+var printerCharacteristic = null;
+
+async function connectBluetoothPrinter() {
+    try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const serviceUUIDs = ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2'];
+        for (let uuid of serviceUUIDs) {
+            try {
+                const service = await server.getPrimaryService(uuid);
+                const characteristics = await service.getCharacteristics();
+                for (let char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        printerCharacteristic = char;
+                        return true;
+                    }
+                }
+            } catch (e) { continue; }
+        }
+        const services = await server.getPrimaryServices();
+        for (let service of services) {
+            const chars = await service.getCharacteristics();
+            for (let char of chars) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    printerCharacteristic = char;
+                    return true;
+                }
+            }
+        }
+        throw new Error('No writable characteristic found');
+    } catch (error) {
+        console.error('Bluetooth connection failed:', error);
+        return false;
+    }
+}
+
+async function printToBluetoothPrinter(text) {
+    if (!printerCharacteristic) {
+        const connected = await connectBluetoothPrinter();
+        if (!connected) return false;
+    }
+    try {
+        const encoder = new TextEncoder();
+        const ESC = 0x1B;
+        const GS = 0x1D;
+        let commands = new Uint8Array([ESC, 0x40]);
+        await printerCharacteristic.writeValue(commands);
+        const textData = encoder.encode(text);
+        const chunkSize = 100;
+        for (let i = 0; i < textData.length; i += chunkSize) {
+            const chunk = textData.slice(i, i + chunkSize);
+            await printerCharacteristic.writeValue(chunk);
+            await new Promise(r => setTimeout(r, 50));
+        }
+        commands = new Uint8Array([0x0A, 0x0A, 0x0A, GS, 0x56, 0x00]);
+        await printerCharacteristic.writeValue(commands);
+        return true;
+    } catch (error) {
+        console.error('Print failed:', error);
+        return false;
+    }
+}
+
+function generateESCPOSReceiptFromOrder(order) {
+    var text = '';
+    var line = '--------------------------------';
+    text += '       CHINEMEREM FOODS\n';
+    text += '        Sales Receipt\n';
+    text += line + '\n';
+    text += 'Order: ' + order.order_number + '\n';
+    text += 'Date: ' + order.order_date + '\n';
+    text += 'Time: ' + order.order_time + '\n';
+    if (order.customer_name) text += 'Customer: ' + order.customer_name + '\n';
+    text += 'Staff: ' + (order.staff_name || 'Unknown') + '\n';
+    text += line + '\n';
+    text += 'ITEM              QTY    AMOUNT\n';
+    text += line + '\n';
+    if (order.items && order.items.length > 0) {
+        order.items.forEach(function(item) {
+            var name = (item.product_name || '').substring(0, 16).padEnd(16);
+            var qty = String(item.quantity).padStart(4);
+            var amt = 'N' + Number(item.total).toLocaleString();
+            text += name + ' ' + qty + ' ' + amt.padStart(8) + '\n';
+        });
+    }
+    text += line + '\n';
+    text += 'Subtotal:          N' + Number(order.total_amount).toLocaleString().padStart(9) + '\n';
+    if (order.discount_amount > 0) {
+        text += 'Discount:         -N' + Number(order.discount_amount).toLocaleString().padStart(9) + '\n';
+    }
+    text += line + '\n';
+    text += 'GRAND TOTAL:       N' + Number(order.grand_total).toLocaleString().padStart(9) + '\n';
+    text += 'Payment: ' + (order.payment_method || 'Cash') + '\n';
+    text += line + '\n';
+    text += '   Thank you for your patronage!\n';
+    text += '      Powered by BendlessTech\n';
+    text += '\n\n\n';
+    return text;
+}
+
+var currentPrintOrder = null;
+
+async function printReceipt() {
     var printContent = document.getElementById('print-content');
     if (!printContent) {
         alert('No receipt content found');
         return;
     }
     
-    // Create a new window for printing
+    // Try Bluetooth printing first
+    if ('bluetooth' in navigator && currentPrintOrder) {
+        var receiptText = generateESCPOSReceiptFromOrder(currentPrintOrder);
+        var printed = await printToBluetoothPrinter(receiptText);
+        if (printed) {
+            alert('Receipt printed successfully!');
+            return;
+        }
+    }
+    
+    // Fallback to browser print dialog
     var printWindow = window.open('', '_blank', 'width=350,height=700');
     
     printWindow.document.write('<!DOCTYPE html><html><head><title>Print Receipt</title>');
@@ -370,7 +491,6 @@ function printReceipt() {
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     
-    // Auto-print after content loads
     printWindow.onload = function() {
         setTimeout(function() { printWindow.print(); }, 300);
     };

@@ -598,18 +598,17 @@ $cash_left = floatval($summary->cash_left ?? 0);
             })
             .then(function(data) {
                 if (data.success) {
-                    if (typeof CFI !== 'undefined' && CFI.successPopup) {
-                        CFI.successPopup.show({
-                            title: 'Saved!',
-                            message: 'Financial summary updated successfully.',
-                            details: {
-                                'Cash to Bank': '₦' + amount.toLocaleString('en-NG', {minimumFractionDigits: 0})
-                            }
-                        });
-                    } else {
-                        alert('Saved successfully!');
-                        location.reload();
-                    }
+                    // Update the input data-value attribute
+                    document.getElementById('cfi-cash-to-bank').setAttribute('data-value', amount);
+                    
+                    // Recalculate cash left immediately
+                    calculateCashLeft();
+                    
+                    // Show success message and reload to get fresh data
+                    alert('Cash to Bank saved successfully! Page will refresh.');
+                    
+                    // Force full page reload with cache-busting timestamp
+                    window.location.href = window.location.pathname + '?t=' + Date.now();
                 } else {
                     alert('Error: ' + (data.data || 'Failed to save'));
                     btn.disabled = false;

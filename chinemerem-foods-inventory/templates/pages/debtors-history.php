@@ -249,6 +249,127 @@ body.innerHTML=h}else{body.innerHTML='<div style="text-align:center;padding:2rem
 
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
 
+// Bluetooth thermal printer support
+var bluetoothDevice = null;
+var printerCharacteristic = null;
+
+async function connectBluetoothPrinter() {
+    try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const serviceUUIDs = ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2'];
+        for (let uuid of serviceUUIDs) {
+            try {
+                const service = await server.getPrimaryService(uuid);
+                const characteristics = await service.getCharacteristics();
+                for (let char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        printerCharacteristic = char;
+                        return true;
+                    }
+                }
+            } catch (e) { continue; }
+        }
+        const services = await server.getPrimaryServices();
+        for (let service of services) {
+            const chars = await service.getCharacteristics();
+            for (let char of chars) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    printerCharacteristic = char;
+                    return true;
+                }
+            }
+        }
+        throw new Error('No writable characteristic found');
+    } catch (error) {
+        console.error('Bluetooth connection failed:', error);
+        return false;
+    }
+}
+
+async function printToBluetoothPrinter(text) {
+    if (!printerCharacteristic) {
+        const connected = await connectBluetoothPrinter();
+        if (!connected) return false;
+    }
+    try {
+        const encoder = new TextEncoder();
+        const ESC = 0x1B;
+        const GS = 0x1D;
+        let commands = new Uint8Array([ESC, 0x40]);
+        await printerCharacteristic.writeValue(commands);
+        const textData = encoder.encode(text);
+        const chunkSize = 100;
+        for (let i = 0; i < textData.length; i += chunkSize) {
+            const chunk = textData.slice(i, i + chunkSize);
+            await printerCharacteristic.writeValue(chunk);
+            await new Promise(r => setTimeout(r, 50));
+        }
+        commands = new Uint8Array([0x0A, 0x0A, 0x0A, GS, 0x56, 0x00]);
+        await printerCharacteristic.writeValue(commands);
+        return true;
+    } catch (error) {
+        console.error('Print failed:', error);
+        return false;
+    }
+}
+
+function generateOrderESCPOS(o) {
+    var text = '';
+    var line = '--------------------------------';
+    text += '       CHINEMEREM FOODS\n';
+    text += '    Credit Order (Reprint)\n';
+    text += line + '\n';
+    text += 'Order: ' + (o.order_number||'N/A') + '\n';
+    text += 'Date: ' + (o.order_date||'N/A') + '\n';
+    text += 'Time: ' + (o.order_time||'N/A') + '\n';
+    text += 'Customer: ' + (o.customer_name||'N/A') + '\n';
+    text += line + '\n';
+    text += 'ITEM              QTY    AMOUNT\n';
+    text += line + '\n';
+    if(o.items&&o.items.length>0){o.items.forEach(function(i){
+        var name = (i.product_name || '').substring(0, 16).padEnd(16);
+        var qty = String(i.quantity).padStart(4);
+        var amt = 'N' + parseFloat(i.total).toLocaleString();
+        text += name + ' ' + qty + ' ' + amt.padStart(8) + '\n';
+    })}
+    text += line + '\n';
+    text += 'ORDER TOTAL:       N' + parseFloat(o.grand_total||0).toLocaleString().padStart(9) + '\n';
+    text += line + '\n';
+    text += '  Credit order - Payment pending\n';
+    text += '      Powered by BendlessTech\n';
+    text += '\n\n\n';
+    return text;
+}
+
+function generatePaymentESCPOS(p) {
+    var text = '';
+    var line = '--------------------------------';
+    text += '       CHINEMEREM FOODS\n';
+    text += '   Debt Payment (Reprint)\n';
+    text += line + '\n';
+    text += 'Receipt: PAY-' + p.id + '\n';
+    text += 'Date: ' + p.transaction_date + '\n';
+    text += 'Time: ' + p.transaction_time + '\n';
+    text += 'Debtor: ' + p.debtor_name + '\n';
+    text += 'Staff: ' + (p.staff_name||'-') + '\n';
+    text += line + '\n';
+    text += 'Balance Before: N' + parseFloat(p.balance_before).toLocaleString() + '\n';
+    text += 'PAYMENT:        N' + parseFloat(p.amount).toLocaleString() + '\n';
+    if(p.transfer_amount>0) text += '  Via Transfer: N' + parseFloat(p.transfer_amount).toLocaleString() + '\n';
+    if(p.cash_amount>0) text += '  Via Cash:     N' + parseFloat(p.cash_amount).toLocaleString() + '\n';
+    text += line + '\n';
+    text += 'NEW BALANCE:    N' + parseFloat(p.balance_after).toLocaleString() + '\n';
+    text += line + '\n';
+    text += '   Payment received with thanks!\n';
+    text += '      Powered by BendlessTech\n';
+    text += '\n\n\n';
+    return text;
+}
+
 function reprintOrder(id){
 fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id='+id)
 .then(function(r){return r.json()})
@@ -256,7 +377,17 @@ fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&o
 .catch(function(){alert('Error loading')});
 }
 
-function printOrder(o){
+async function printOrder(o){
+// Try Bluetooth first
+if ('bluetooth' in navigator) {
+    var receiptText = generateOrderESCPOS(o);
+    var printed = await printToBluetoothPrinter(receiptText);
+    if (printed) {
+        alert('Receipt printed successfully!');
+        return;
+    }
+}
+// Fallback to browser print
 var w=window.open('','_blank','width=350,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
@@ -299,8 +430,18 @@ w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
 }
 
-function reprintPay(id){
+async function reprintPay(id){
 var p=payData[id];if(!p){alert('Not found');return}
+// Try Bluetooth first
+if ('bluetooth' in navigator) {
+    var receiptText = generatePaymentESCPOS(p);
+    var printed = await printToBluetoothPrinter(receiptText);
+    if (printed) {
+        alert('Receipt printed successfully!');
+        return;
+    }
+}
+// Fallback to browser print
 var w=window.open('','_blank','width=350,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
