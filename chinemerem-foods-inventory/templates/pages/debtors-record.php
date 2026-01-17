@@ -568,7 +568,7 @@ h+='<div class="ln"></div><div class="r b"><span>TOTAL:</span><span>N<?php echo 
 h+='<div class="r"><span>NEW BALANCE:</span><span>N<?php echo number_format($order_receipt['new_balance'], 0); ?></span></div>';
 h+='<div class="ln"></div><div class="c">Powered by BendlessTech</div></body></html>';
 w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500)}
-function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url(remove_query_arg(array('order_done','rk'))); ?>'}
+function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('order_done','rk')))); ?>'}
 </script>
 <?php endif; ?>
 
@@ -616,7 +616,7 @@ h+='<div class="r b"><span>PAYMENT:</span><span>N<?php echo number_format($payme
 h+='<div class="ln"></div><div class="r b"><span>NEW BALANCE:</span><span>N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></div>';
 h+='<div class="ln"></div><div class="c">Thank you!<br>Powered by BendlessTech</div></body></html>';
 w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500)}
-function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url(remove_query_arg(array('pay_done','pk'))); ?>'}
+function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('pay_done','pk')))); ?>'}
 </script>
 <?php endif; ?>
 
