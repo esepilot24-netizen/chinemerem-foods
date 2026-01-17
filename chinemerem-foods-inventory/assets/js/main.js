@@ -994,50 +994,7 @@
         });
     });
 
-    // CRITICAL: Handle browser back-forward cache (bfcache)
-    // This ensures pages ALWAYS load fresh data when navigating
-    window.addEventListener('pageshow', function(event) {
-        // Check if page was loaded from bfcache
-        if (event.persisted) {
-            // Force reload to get fresh data
-            window.location.reload();
-        }
-    });
-
-    // Also handle the pagehide event to mark pages for reload
-    window.addEventListener('pagehide', function(event) {
-        // Mark that we're leaving the page
-        sessionStorage.setItem('cfi_page_left', Date.now().toString());
-    });
-
-    // Check if we need to reload on page load
-    $(document).ready(function() {
-        // Check if this is a navigation that needs fresh data
-        const lastLeft = sessionStorage.getItem('cfi_page_left');
-        const pageLoadTime = Date.now();
-        
-        // If we left a page within the last 30 seconds and came back, reload
-        if (lastLeft && (pageLoadTime - parseInt(lastLeft)) < 30000) {
-            // Check if the current URL is a dynamic page
-            const dynamicPages = [
-                'debtors-record', 'debtors-history', 'debtor-order-summary',
-                'stock-record', 'stock-history', 'packing-store', 'packing-history',
-                'financial-summary', 'financial-history', 'transfer-history',
-                'order-history', 'take-order', 'expenses', 'expenses-history',
-                'cash-out', 'cash-out-history', 'not-supplied', 'not-supplied-history',
-                'supplied-today', 'supplied-today-history', 'reconciliation', 'reconciliation-history'
-            ];
-            
-            const currentUrl = window.location.href;
-            const needsReload = dynamicPages.some(page => currentUrl.includes(page));
-            
-            if (needsReload) {
-                // Clear the marker
-                sessionStorage.removeItem('cfi_page_left');
-                // Force hard reload
-                window.location.reload(true);
-            }
-        }
-    });
+    // NOTE: bfcache handlers removed to prevent continuous refresh on some browsers
+    // Pages use server-side no-cache headers instead
 
 })(jQuery);

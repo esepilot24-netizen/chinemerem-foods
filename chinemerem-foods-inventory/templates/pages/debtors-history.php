@@ -1,6 +1,6 @@
 <?php
 /**
- * Debtors History Page Template - COMPLETE REBUILD v2
+ * Debtors History Page Template - COMPLETE REBUILD v3
  * Zero caching, direct database queries
  */
 
@@ -8,15 +8,20 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Force fresh page - no caching
+// Force fresh page - aggressive no-cache headers
 if (!headers_sent()) {
-    header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
+    header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, post-check=0, pre-check=0');
     header('Pragma: no-cache');
-    header('Expires: 0');
+    header('Expires: Sat, 01 Jan 2000 00:00:00 GMT');
     header('Vary: *');
 }
 
+// Clear any WordPress object cache
+wp_cache_flush();
+
 global $wpdb;
+$wpdb->flush();  // Clear wpdb query cache
+
 $is_super_admin = CFI_Auth::is_super_admin();
 $message = '';
 $message_type = '';
@@ -43,7 +48,7 @@ if (isset($_POST['cfi_delete_trans']) && $is_super_admin && wp_verify_nonce($_PO
 // Get selected debtor filter
 $selected_debtor = isset($_GET['debtor']) ? intval($_GET['debtor']) : 0;
 
-// Build query with fresh data
+// Build query with SQL_NO_CACHE for fresh data
 $where = '1=1';
 $params = array();
 if ($selected_debtor) {
@@ -51,10 +56,10 @@ if ($selected_debtor) {
     $params[] = $selected_debtor;
 }
 
-$query = "SELECT dt.*, d.name as debtor_name, u.display_name as staff_name 
-          FROM {$trans_table} dt 
-          LEFT JOIN {$debtors_table} d ON dt.debtor_id = d.id 
-          LEFT JOIN {$wpdb->users} u ON dt.staff_id = u.ID 
+$query = "SELECT SQL_NO_CACHE dt.*, d.name as debtor_name, u.display_name as staff_name 
+          FROM `{$trans_table}` dt 
+          LEFT JOIN `{$debtors_table}` d ON dt.debtor_id = d.id 
+          LEFT JOIN `{$wpdb->users}` u ON dt.staff_id = u.ID 
           WHERE {$where} 
           ORDER BY dt.id DESC 
           LIMIT 100";
@@ -283,9 +288,7 @@ w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};
 document.getElementById('order-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
 
-// Force reload on back/forward navigation (bfcache)
-window.addEventListener('pageshow',function(e){if(e.persisted)window.location.reload()});
-// Prevent form resubmission on back button
+// Prevent form resubmission on back button - but do NOT auto-reload
 if(window.history.replaceState)window.history.replaceState(null,null,window.location.href);
 </script>
 </body>

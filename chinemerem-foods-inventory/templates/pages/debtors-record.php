@@ -1,20 +1,23 @@
 <?php
 /**
- * Debtors Record Page Template - COMPLETE REBUILD v2
- * Zero caching, direct database queries, PRG pattern
+ * Debtors Record Page Template - COMPLETE REBUILD v3
+ * Brutal fix: Zero caching, direct wpdb queries, proper balance tracking
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Force fresh page - no caching at all levels
+// Force fresh page - aggressive no-cache headers
 if (!headers_sent()) {
-    header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
+    header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, post-check=0, pre-check=0');
     header('Pragma: no-cache');
-    header('Expires: 0');
+    header('Expires: Sat, 01 Jan 2000 00:00:00 GMT');
     header('Vary: *');
 }
+
+// Clear any WordPress object cache for debtors
+wp_cache_flush();
 
 // Ensure database tables exist
 CFI_Database::create_tables();
@@ -126,9 +129,11 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                 $balance_before = floatval($debtor->total_debt);
                 $new_balance = $balance_before + $total_amount;
                 
-                $wpdb->query($wpdb->prepare(
-                    "UPDATE {$debtors_table} SET total_debt = %f WHERE id = %d",
+                // CRITICAL: Direct SQL update without any caching
+                $update_result = $wpdb->query($wpdb->prepare(
+                    "UPDATE `{$debtors_table}` SET `total_debt` = %f, `updated_at` = %s WHERE `id` = %d",
                     $new_balance,
+                    current_time('mysql'),
                     $debtor_id
                 ));
                 
@@ -202,10 +207,11 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
             $balance_before = floatval($debtor->total_debt);
             $new_balance = $balance_before - $total_payment;
             
-            // Update debtor balance
-            $wpdb->query($wpdb->prepare(
-                "UPDATE {$debtors_table} SET total_debt = %f WHERE id = %d",
+            // CRITICAL: Direct SQL update without any caching
+            $update_result = $wpdb->query($wpdb->prepare(
+                "UPDATE `{$debtors_table}` SET `total_debt` = %f, `updated_at` = %s WHERE `id` = %d",
                 $new_balance,
+                current_time('mysql'),
                 $debtor_id
             ));
             
@@ -294,8 +300,9 @@ if (isset($_GET['pay_done']) && isset($_GET['pk'])) {
     }
 }
 
-// Get fresh data - use direct queries only, no caching
-$debtors = $wpdb->get_results("SELECT * FROM {$debtors_table} WHERE status = 'active' ORDER BY name ASC");
+// Get fresh data - use SQL_NO_CACHE and bypass WordPress object cache
+$wpdb->flush();  // Clear any cached query results
+$debtors = $wpdb->get_results("SELECT SQL_NO_CACHE * FROM `{$debtors_table}` WHERE `status` = 'active' ORDER BY `name` ASC");
 $products = CFI_Products::get_all();
 
 $selected_debtor_id = isset($_GET['debtor']) ? intval($_GET['debtor']) : 0;
@@ -303,7 +310,7 @@ $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
 $selected_debtor = null;
 if ($selected_debtor_id) {
     $selected_debtor = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM {$debtors_table} WHERE id = %d LIMIT 1",
+        "SELECT SQL_NO_CACHE * FROM `{$debtors_table}` WHERE `id` = %d LIMIT 1",
         $selected_debtor_id
     ));
 }
@@ -614,9 +621,7 @@ function closePayModal(){document.getElementById('pay-modal').style.display='non
 <?php endif; ?>
 
 <script>
-// Force reload on back/forward navigation (bfcache)
-window.addEventListener('pageshow',function(e){if(e.persisted)window.location.reload()});
-// Prevent form resubmission on back button
+// Prevent form resubmission on back button - but do NOT auto-reload
 if(window.history.replaceState)window.history.replaceState(null,null,window.location.href);
 </script>
 </body>
