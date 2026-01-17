@@ -260,9 +260,13 @@ class CFI_Orders {
         global $wpdb;
         $table = CFI_Database::get_table('orders');
         
+        // Flush caches for fresh data
+        wp_cache_flush();
+        $wpdb->flush();
+        
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT 
+                "SELECT SQL_NO_CACHE
                     SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END) as total_sales,
                     SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END) as total_transfer,
                     SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END) as total_cash,

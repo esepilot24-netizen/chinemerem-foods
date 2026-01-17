@@ -15,6 +15,11 @@ header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
 header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
 
+// Flush all caches before getting data
+global $wpdb;
+wp_cache_flush();
+$wpdb->flush();
+
 $today = current_time('Y-m-d');
 $summary = CFI_Financial::get_summary($today);
 

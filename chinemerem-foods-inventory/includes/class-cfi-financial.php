@@ -61,13 +61,18 @@ class CFI_Financial {
         global $wpdb;
         $table = CFI_Database::get_table('financial_summary');
         
+        // Flush all caches to ensure fresh data
+        wp_cache_flush();
+        $wpdb->flush();
+        
         self::initialize_date($date);
         
         // Recalculate values from source data
         self::recalculate($date);
         
+        // Use SQL_NO_CACHE to bypass MySQL query cache
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM $table WHERE record_date = %s", $date)
+            $wpdb->prepare("SELECT SQL_NO_CACHE * FROM $table WHERE record_date = %s", $date)
         );
     }
     
@@ -78,7 +83,11 @@ class CFI_Financial {
         global $wpdb;
         $table = CFI_Database::get_table('financial_summary');
         
-        // Get order totals
+        // Flush caches to ensure fresh data from source tables
+        wp_cache_flush();
+        $wpdb->flush();
+        
+        // Get order totals - using fresh data from orders table
         $order_totals = CFI_Orders::get_daily_totals($date);
         $total_sales = $order_totals->total_sales ?: 0;
         $transfer_from_orders = $order_totals->total_transfer ?: 0;
@@ -93,9 +102,9 @@ class CFI_Financial {
         // Get expenses
         $expenses = CFI_Expenses::get_total($date);
         
-        // Get current record
+        // Get current record with SQL_NO_CACHE
         $current = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM $table WHERE record_date = %s", $date)
+            $wpdb->prepare("SELECT SQL_NO_CACHE * FROM $table WHERE record_date = %s", $date)
         );
         
         // Calculate cash left
