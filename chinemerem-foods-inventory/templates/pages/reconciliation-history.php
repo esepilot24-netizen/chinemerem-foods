@@ -1,6 +1,6 @@
 <?php
 /**
- * Reconciliation History Page Template - WITH SUPER ADMIN DELETE
+ * Reconciliation History Page Template - WITH 3 STAFF PATTERN
  */
 
 if (!defined('ABSPATH')) {
@@ -30,11 +30,21 @@ if (isset($_POST['cfi_delete_reconciliation']) && $is_super_admin && wp_verify_n
 $start_date = isset($_GET['start']) ? sanitize_text_field($_GET['start']) : gmdate('Y-m-d', strtotime('-30 days'));
 $end_date = isset($_GET['end']) ? sanitize_text_field($_GET['end']) : current_time('Y-m-d');
 
-// Get reconciliation history
+// Get reconciliation history with 3 staff joins
 global $wpdb;
 $history_table = $wpdb->prefix . 'cfi_reconciliation_history';
+$users_table = $wpdb->users;
 $history = $wpdb->get_results($wpdb->prepare(
-    "SELECT * FROM $history_table WHERE reconcile_date BETWEEN %s AND %s ORDER BY reconcile_date DESC",
+    "SELECT h.*, 
+            u1.display_name as staff1_name, 
+            u2.display_name as staff2_name,
+            u3.display_name as staff3_name 
+     FROM $history_table h 
+     LEFT JOIN $users_table u1 ON h.staff1_id = u1.ID 
+     LEFT JOIN $users_table u2 ON h.staff2_id = u2.ID 
+     LEFT JOIN $users_table u3 ON h.staff3_id = u3.ID 
+     WHERE h.reconcile_date BETWEEN %s AND %s 
+     ORDER BY h.reconcile_date DESC",
     $start_date,
     $end_date
 ));
@@ -102,7 +112,7 @@ $history = $wpdb->get_results($wpdb->prepare(
     }
     
     .cfi-recon-table-wrapper { overflow-x: auto; }
-    .cfi-recon-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 800px; }
+    .cfi-recon-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1100px; }
     .cfi-recon-table th { background: #001943; color: white; padding: 0.6rem 0.4rem; text-align: left; white-space: nowrap; font-size: 0.65rem; }
     .cfi-recon-table td { padding: 0.5rem 0.4rem; border-bottom: 1px solid #e2e8f0; font-size: 0.7rem; }
     .cfi-recon-table tr:hover { background: #f8fafc; }
@@ -167,34 +177,35 @@ $history = $wpdb->get_results($wpdb->prepare(
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Admin 1</th>
-                        <th>Admin 1 Time</th>
-                        <th>Admin 1 Remarks</th>
-                        <th>Admin 2</th>
-                        <th>Admin 2 Time</th>
-                        <th>Admin 2 Remarks</th>
+                        <th>Staff 1</th>
+                        <th>Time</th>
+                        <th>Remarks</th>
+                        <th>Staff 2</th>
+                        <th>Time</th>
+                        <th>Remarks</th>
+                        <th>Staff 3</th>
+                        <th>Time</th>
+                        <th>Remarks</th>
                         <th>Status</th>
                         <?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($history)) : ?>
-                    <tr><td colspan="<?php echo $is_super_admin ? '9' : '8'; ?>" class="cfi-recon-empty">No reconciliation records found for the selected period</td></tr>
+                    <tr><td colspan="<?php echo $is_super_admin ? '12' : '11'; ?>" class="cfi-recon-empty">No reconciliation records found for the selected period</td></tr>
                     <?php else : ?>
-                    <?php foreach ($history as $record) : 
-                        $admin1 = $record->admin1_id ? get_userdata($record->admin1_id) : null;
-                        $admin2 = $record->admin2_id ? get_userdata($record->admin2_id) : null;
-                        $admin1_name = $admin1 ? $admin1->display_name : 'N/A';
-                        $admin2_name = $admin2 ? $admin2->display_name : 'N/A';
-                    ?>
+                    <?php foreach ($history as $record) : ?>
                     <tr>
                         <td class="cfi-recon-date-col"><?php echo esc_html($record->reconcile_date); ?></td>
-                        <td><?php echo esc_html($admin1_name); ?></td>
-                        <td><?php echo $record->admin1_time ? esc_html(date('H:i', strtotime($record->admin1_time))) : 'N/A'; ?></td>
-                        <td><?php echo esc_html($record->admin1_remarks ?: '-'); ?></td>
-                        <td><?php echo esc_html($admin2_name); ?></td>
-                        <td><?php echo $record->admin2_time ? esc_html(date('H:i', strtotime($record->admin2_time))) : 'N/A'; ?></td>
-                        <td><?php echo esc_html($record->admin2_remarks ?: '-'); ?></td>
+                        <td><?php echo esc_html($record->staff1_name ?: 'N/A'); ?></td>
+                        <td><?php echo $record->staff1_time ? esc_html(date('H:i', strtotime($record->staff1_time))) : 'N/A'; ?></td>
+                        <td><?php echo esc_html($record->staff1_remarks ?: '-'); ?></td>
+                        <td><?php echo esc_html($record->staff2_name ?: 'N/A'); ?></td>
+                        <td><?php echo $record->staff2_time ? esc_html(date('H:i', strtotime($record->staff2_time))) : 'N/A'; ?></td>
+                        <td><?php echo esc_html($record->staff2_remarks ?: '-'); ?></td>
+                        <td><?php echo esc_html($record->staff3_name ?: 'N/A'); ?></td>
+                        <td><?php echo $record->staff3_time ? esc_html(date('H:i', strtotime($record->staff3_time))) : 'N/A'; ?></td>
+                        <td><?php echo esc_html($record->staff3_remarks ?: '-'); ?></td>
                         <td>
                             <span class="cfi-recon-status cfi-recon-status-<?php echo $record->status === 'completed' ? 'completed' : 'pending'; ?>">
                                 <?php echo ucfirst(esc_html($record->status)); ?>
