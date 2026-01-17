@@ -226,6 +226,53 @@ if (isset($_POST['cfi_delete_debtor']) && wp_verify_nonce($_POST['cfi_debtor_del
     }
 }
 
+// Clear All Test Data (Super Admin Only)
+if (isset($_POST['cfi_clear_all_data']) && wp_verify_nonce($_POST['cfi_clear_data_nonce'], 'cfi_clear_all_data') && CFI_Auth::is_super_admin()) {
+    global $wpdb;
+    
+    // Tables to clear (all records and histories)
+    $tables_to_clear = array(
+        'cfi_orders',
+        'cfi_order_items',
+        'cfi_stock',
+        'cfi_stock_history',
+        'cfi_packing_store',
+        'cfi_packing_history',
+        'cfi_debtor_transactions',
+        'cfi_expenses',
+        'cfi_imports',
+        'cfi_not_supplied',
+        'cfi_supplied_today',
+        'cfi_cashout',
+        'cfi_financial_summary',
+        'cfi_financial_history',
+        'cfi_transfer_history',
+        'cfi_reconciliation',
+        'cfi_reconciliation_history',
+        'cfi_sync_queue',
+    );
+    
+    $success_count = 0;
+    foreach ($tables_to_clear as $table) {
+        $full_table = $wpdb->prefix . $table;
+        $result = $wpdb->query("TRUNCATE TABLE `$full_table`");
+        if ($result !== false) {
+            $success_count++;
+        }
+    }
+    
+    // Reset debtors' debt to 0 (keep debtors but clear their debts)
+    $wpdb->query("UPDATE `{$wpdb->prefix}cfi_debtors` SET `total_debt` = 0 WHERE 1=1");
+    
+    if ($success_count > 0) {
+        $message = 'All test data has been cleared! ' . $success_count . ' tables emptied. Debtor balances reset to ₦0.';
+        $message_type = 'success';
+    } else {
+        $message = 'Failed to clear data. Please try again.';
+        $message_type = 'error';
+    }
+}
+
 // Fetch products and debtors
 global $wpdb;
 $products_table = $wpdb->prefix . 'cfi_products';
@@ -387,6 +434,37 @@ $is_super_admin = CFI_Auth::is_super_admin();
                 </table>
             </div>
         </div>
+        
+        <!-- Clear All Test Data Section - Super Admin Only -->
+        <div class="cfi-admin-section cfi-glass" style="margin-bottom: 1.5rem; border: 2px solid #dc2626;">
+            <h3 style="color: #dc2626;"><i class="fa-solid fa-exclamation-triangle"></i> Danger Zone <span style="font-size: 0.75rem; color: #f59e0b;">(Super Admin)</span></h3>
+            <p style="color: #64748b; margin-bottom: 1rem;">This action will permanently delete all records and histories from the system. Use this to clear test data before going live. Products and debtors will be kept but debtor balances will be reset to ₦0.</p>
+            
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="color: #dc2626; margin: 0 0 0.5rem 0;"><i class="fa-solid fa-warning"></i> Warning: This will delete:</h4>
+                <ul style="color: #991b1b; margin: 0; padding-left: 1.5rem; font-size: 0.875rem;">
+                    <li>All Orders & Order History</li>
+                    <li>All Stock Records & History</li>
+                    <li>All Packing Store Records & History</li>
+                    <li>All Debtor Transactions (balances reset to ₦0)</li>
+                    <li>All Expenses Records</li>
+                    <li>All Import Records</li>
+                    <li>All Not Supplied & Supplied Today Records</li>
+                    <li>All Cash Out Records</li>
+                    <li>All Financial Summary & History</li>
+                    <li>All Transfer History</li>
+                    <li>All Reconciliation Records & History</li>
+                </ul>
+            </div>
+            
+            <form method="POST" onsubmit="return confirmClearData();">
+                <?php wp_nonce_field('cfi_clear_all_data', 'cfi_clear_data_nonce'); ?>
+                <button type="submit" name="cfi_clear_all_data" style="background: #dc2626; color: white; padding: 1rem 2rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.75rem; font-size: 1rem;">
+                    <i class="fa-solid fa-trash-can"></i>
+                    Clear All Test Data
+                </button>
+            </form>
+        </div>
         <?php endif; ?>
     </div>
 </main>
@@ -470,4 +548,21 @@ jQuery(document).ready(function($) {
         $('#cfi-edit-debtor-modal').hide();
     });
 });
+
+// Confirm Clear All Data
+function confirmClearData() {
+    var confirm1 = confirm('⚠️ WARNING: This will permanently delete ALL records and histories!\n\nAre you sure you want to clear all test data?');
+    if (!confirm1) return false;
+    
+    var confirm2 = confirm('🚨 FINAL WARNING: This action CANNOT be undone!\n\nType "yes" in the next prompt to confirm deletion.');
+    if (!confirm2) return false;
+    
+    var typeConfirm = prompt('Type "DELETE" to confirm you want to clear all test data:');
+    if (typeConfirm !== 'DELETE') {
+        alert('Deletion cancelled. You did not type "DELETE".');
+        return false;
+    }
+    
+    return true;
+}
 </script>
