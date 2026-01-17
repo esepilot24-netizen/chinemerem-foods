@@ -1,27 +1,106 @@
 <?php
 /**
  * Financial Summary Page Template - REBUILT FROM SCRATCH
- * With real-time calculations and responsive CSS
- * No caching for real-time updates
+ * With aggressive no-caching to always show fresh data
+ * NO browser cache, NO bfcache, NO database cache
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Prevent caching - ensure fresh data every time
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Cache-Control: post-check=0, pre-check=0', false);
-header('Pragma: no-cache');
-header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+// ========================================
+// AGGRESSIVE ANTI-CACHING MEASURES
+// ========================================
 
-// Flush all caches before getting data
+// 1. HTTP Headers to prevent ALL caching
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+    header('Cache-Control: post-check=0, pre-check=0', false);
+    header('Pragma: no-cache');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+    header('Vary: *');
+}
+
+// 2. Flush ALL WordPress caches
 global $wpdb;
-wp_cache_flush();
-$wpdb->flush();
+if (function_exists('wp_cache_flush')) {
+    wp_cache_flush();
+}
+if (method_exists($wpdb, 'flush')) {
+    $wpdb->flush();
+}
 
+// 3. Force fresh database connection
+$wpdb->check_connection();
+
+// 4. Unique page load ID to break any remaining cache
+$page_load_id = uniqid('cfi_fin_', true);
+
+// 5. Get fresh data using direct SQL query with SQL_NO_CACHE
 $today = current_time('Y-m-d');
-$summary = CFI_Financial::get_summary($today);
+$table_financial = $wpdb->prefix . 'cfi_financial_summary';
+$table_orders = $wpdb->prefix . 'cfi_orders';
+$table_cashout = $wpdb->prefix . 'cfi_cashout';
+$table_expenses = $wpdb->prefix . 'cfi_expenses';
+$table_transactions = $wpdb->prefix . 'cfi_debtor_transactions';
+
+// Get today's summary directly from database (bypass all ORM caching)
+$summary = $wpdb->get_row($wpdb->prepare(
+    "SELECT SQL_NO_CACHE * FROM $table_financial WHERE record_date = %s",
+    $today
+));
+
+// If no summary exists, create one with calculated values
+if (!$summary) {
+    // Calculate from source data
+    $order_totals = $wpdb->get_row($wpdb->prepare(
+        "SELECT SQL_NO_CACHE 
+            COALESCE(SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END), 0) as total_sales,
+            COALESCE(SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END), 0) as transfer_from_orders,
+            COALESCE(SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END), 0) as cash_sales
+        FROM $table_orders 
+        WHERE DATE(order_date) = %s",
+        $today
+    ));
+    
+    $cashout_transfer = $wpdb->get_var($wpdb->prepare(
+        "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_cashout WHERE DATE(cashout_date) = %s",
+        $today
+    ));
+    
+    $expenses_total = $wpdb->get_var($wpdb->prepare(
+        "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_expenses WHERE DATE(expense_date) = %s",
+        $today
+    ));
+    
+    $debtors_cash = $wpdb->get_var($wpdb->prepare(
+        "SELECT SQL_NO_CACHE COALESCE(SUM(CASE WHEN transaction_type = 'payment' AND payment_method = 'cash' THEN amount ELSE 0 END), 0) 
+        FROM $table_transactions 
+        WHERE DATE(transaction_date) = %s",
+        $today
+    ));
+    
+    $debtors_transfer = $wpdb->get_var($wpdb->prepare(
+        "SELECT SQL_NO_CACHE COALESCE(SUM(CASE WHEN transaction_type = 'payment' AND payment_method = 'transfer' THEN amount ELSE 0 END), 0) 
+        FROM $table_transactions 
+        WHERE DATE(transaction_date) = %s",
+        $today
+    ));
+    
+    // Create a summary object
+    $summary = new stdClass();
+    $summary->total_sales = floatval($order_totals->total_sales ?? 0);
+    $summary->transfer_from_orders = floatval($order_totals->transfer_from_orders ?? 0);
+    $summary->cash_sales = floatval($order_totals->cash_sales ?? 0);
+    $summary->transfer_from_cashout = floatval($cashout_transfer ?? 0);
+    $summary->transfer_from_debtors = floatval($debtors_transfer ?? 0);
+    $summary->debtors_cash = floatval($debtors_cash ?? 0);
+    $summary->expenses = floatval($expenses_total ?? 0);
+    $summary->old_cash = 0;
+    $summary->cash_to_bank = 0;
+    $summary->cash_left = 0;
+}
 
 // Ensure values are floats
 $total_sales = floatval($summary->total_sales ?? 0);
@@ -35,6 +114,15 @@ $old_cash = floatval($summary->old_cash ?? 0);
 $cash_to_bank = floatval($summary->cash_to_bank ?? 0);
 $cash_left = floatval($summary->cash_left ?? 0);
 ?>
+
+<!-- NO-CACHE META TAGS to prevent browser caching -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+
+<!-- Unique page ID to detect stale cached pages -->
+<input type="hidden" id="cfi-page-load-id" value="<?php echo esc_attr($page_load_id); ?>">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
@@ -641,5 +729,30 @@ $cash_left = floatval($summary->cash_left ?? 0);
     
     // Initial calculation
     calculateCashLeft();
+    
+    // CRITICAL: Handle browser back/forward cache (bfcache)
+    // When user navigates back or uses soft refresh, ensure fresh data
+    // This is a one-time check that doesn't cause infinite loops
+    (function handlePageCache() {
+        // Check if this is a cached page using Performance API
+        if (window.performance) {
+            var navEntries = performance.getEntriesByType('navigation');
+            if (navEntries.length > 0 && navEntries[0].type === 'back_forward') {
+                // Page was loaded from back/forward cache - force reload with cache bust
+                console.log('CFI: Detected back/forward navigation, reloading for fresh data');
+                window.location.replace(window.location.pathname + '?t=' + Date.now());
+                return;
+            }
+        }
+        
+        // Check if page was restored from bfcache using persisted flag
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Page was restored from bfcache - force reload with cache bust
+                console.log('CFI: Detected bfcache restore, reloading for fresh data');
+                window.location.replace(window.location.pathname + '?t=' + Date.now());
+            }
+        }, {once: true}); // Only run once to prevent infinite loops
+    })();
 })();
 </script>
