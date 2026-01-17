@@ -1082,68 +1082,92 @@ async function printReceipt() {
     printWindow.document.write('<style>');
     printWindow.document.write('@page{size:80mm auto;margin:0}');
     printWindow.document.write('*{margin:0;padding:0;box-sizing:border-box}');
-    printWindow.document.write('body{font-family:Arial,Helvetica,sans-serif;font-size:14px;width:80mm;max-width:80mm;margin:0;padding:3mm;line-height:1.5;color:#000;background:#fff}');
-    printWindow.document.write('.header{text-align:center;padding:10px 0;border-bottom:3px double #000;margin-bottom:12px}');
-    printWindow.document.write('.header h2{font-size:20px;font-weight:bold;margin:0 0 5px;letter-spacing:1px}');
-    printWindow.document.write('.header p{font-size:14px;margin:0;font-weight:500}');
-    printWindow.document.write('.info{margin:12px 0;padding:10px 0;border-bottom:2px solid #000}');
-    printWindow.document.write('.info p{display:flex;justify-content:space-between;margin:8px 0;font-size:13px}');
-    printWindow.document.write('.info p span:first-child{font-weight:600}');
-    printWindow.document.write('.items-table{width:100%;margin:12px 0;border-collapse:collapse}');
-    printWindow.document.write('.items-table th{background:#000;color:#fff;padding:8px 5px;font-size:13px;font-weight:bold;text-align:left;border:1px solid #000}');
-    printWindow.document.write('.items-table th:nth-child(2),.items-table th:nth-child(3){text-align:center}');
-    printWindow.document.write('.items-table td{padding:10px 5px;font-size:13px;border:1px solid #000;border-top:none}');
-    printWindow.document.write('.items-table td:nth-child(2){text-align:center;font-weight:bold;font-size:14px}');
-    printWindow.document.write('.items-table td:nth-child(3){text-align:right;font-weight:bold;font-size:14px}');
-    printWindow.document.write('.items-table tr:nth-child(even){background:#f5f5f5}');
-    printWindow.document.write('.total{margin:12px 0;padding:12px 0;border-top:3px double #000}');
-    printWindow.document.write('.total p{display:flex;justify-content:space-between;margin:8px 0;font-size:14px}');
-    printWindow.document.write('.total p span:first-child{font-weight:600}');
-    printWindow.document.write('.total p span:last-child{font-weight:bold}');
-    printWindow.document.write('.total .grand{font-size:18px;font-weight:bold;background:#000;color:#fff;padding:10px;margin:10px -3mm;width:calc(100% + 6mm)}');
-    printWindow.document.write('.total .grand span{color:#fff}');
-    printWindow.document.write('.footer{text-align:center;margin-top:15px;padding-top:12px;border-top:2px dashed #000;font-size:12px}');
-    printWindow.document.write('.footer p{margin:5px 0}');
-    printWindow.document.write('.no-print{margin:15px 0;text-align:center}');
-    printWindow.document.write('.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}');
-    printWindow.document.write('@media print{.no-print{display:none !important}}');
+    printWindow.document.write('body{font-family:Arial,Helvetica,sans-serif;font-size:13px;width:80mm;max-width:80mm;margin:0 auto;padding:2mm;line-height:1.4;color:#000;background:#fff}');
+    printWindow.document.write('.receipt{width:100%;max-width:76mm}');
+    printWindow.document.write('.header{text-align:center;padding:8px 0;border-bottom:3px double #000;margin-bottom:10px}');
+    printWindow.document.write('.header h2{font-size:18px;font-weight:bold;margin:0 0 3px;letter-spacing:0.5px;text-transform:uppercase}');
+    printWindow.document.write('.header p{font-size:12px;margin:0;font-weight:600}');
+    printWindow.document.write('.info{margin:8px 0;padding:8px 0;border-bottom:1px solid #000}');
+    printWindow.document.write('.info-row{display:flex;justify-content:space-between;margin:4px 0;font-size:11px}');
+    printWindow.document.write('.info-row .label{font-weight:600}');
+    printWindow.document.write('.info-row .value{font-weight:bold}');
+    printWindow.document.write('.items-table{width:100%;margin:8px 0;border-collapse:collapse;font-size:11px}');
+    printWindow.document.write('.items-table th{background:#000;color:#fff;padding:5px 3px;font-size:10px;font-weight:bold;text-align:center;border:1px solid #000}');
+    printWindow.document.write('.items-table th:first-child{text-align:left;width:28%}');
+    printWindow.document.write('.items-table td{padding:6px 3px;border:1px solid #000;vertical-align:middle}');
+    printWindow.document.write('.items-table td:first-child{text-align:left;font-size:10px}');
+    printWindow.document.write('.items-table td:nth-child(2),.items-table td:nth-child(3){text-align:right;font-size:10px}');
+    printWindow.document.write('.items-table td:nth-child(4){text-align:center;font-size:10px}');
+    printWindow.document.write('.items-table td:nth-child(5){text-align:right;font-weight:bold;font-size:11px}');
+    printWindow.document.write('.items-table tr:nth-child(even){background:#f8f8f8}');
+    printWindow.document.write('.discount-row{color:#c00;font-size:9px}');
+    printWindow.document.write('.totals{margin:10px 0;padding:8px 0;border-top:2px solid #000}');
+    printWindow.document.write('.total-row{display:flex;justify-content:space-between;margin:5px 0;font-size:12px}');
+    printWindow.document.write('.total-row .label{font-weight:600}');
+    printWindow.document.write('.total-row .value{font-weight:bold}');
+    printWindow.document.write('.grand-total{background:#000;color:#fff;padding:8px;margin:8px -2mm;font-size:14px;font-weight:bold;display:flex;justify-content:space-between}');
+    printWindow.document.write('.payment-info{margin:8px 0;padding:8px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}');
+    printWindow.document.write('.payment-row{display:flex;justify-content:space-between;margin:4px 0;font-size:11px}');
+    printWindow.document.write('.payment-row .label{font-weight:500}');
+    printWindow.document.write('.payment-row .value{font-weight:bold}');
+    printWindow.document.write('.footer{text-align:center;margin-top:10px;padding-top:8px;font-size:10px}');
+    printWindow.document.write('.footer p{margin:3px 0}');
+    printWindow.document.write('.footer .thanks{font-weight:bold;font-size:11px}');
+    printWindow.document.write('@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}');
     printWindow.document.write('</style></head><body>');
     
-    // Build receipt content
-    var h = '<div class="header"><h2>CHINEMEREM FOODS</h2><p>*** SALES RECEIPT ***</p></div>';
+    // Build receipt content - full width 80mm format with PRICE column and per-item discounts
+    var h = '<div class="receipt">';
+    h += '<div class="header"><h2>CHINEMEREM FOODS</h2><p>*** SALES RECEIPT ***</p></div>';
+    
     h += '<div class="info">';
-    h += '<p><span>Order No:</span><span style="font-weight:bold"><?php echo isset($receipt_data['order_number']) ? esc_js($receipt_data['order_number']) : ''; ?></span></p>';
-    h += '<p><span>Date:</span><span><?php echo isset($receipt_data['date']) ? esc_js($receipt_data['date']) : ''; ?></span></p>';
-    h += '<p><span>Time:</span><span><?php echo isset($receipt_data['time']) ? esc_js($receipt_data['time']) : ''; ?></span></p>';
+    h += '<div class="info-row"><span class="label">Order No:</span><span class="value"><?php echo isset($receipt_data['order_number']) ? esc_js($receipt_data['order_number']) : ''; ?></span></div>';
+    h += '<div class="info-row"><span class="label">Date:</span><span class="value"><?php echo isset($receipt_data['date']) ? esc_js($receipt_data['date']) : ''; ?></span></div>';
+    h += '<div class="info-row"><span class="label">Time:</span><span class="value"><?php echo isset($receipt_data['time']) ? esc_js($receipt_data['time']) : ''; ?></span></div>';
     <?php if (isset($receipt_data['customer_name']) && !empty($receipt_data['customer_name'])) : ?>
-    h += '<p><span>Customer:</span><span style="font-weight:bold;font-size:14px"><?php echo esc_js($receipt_data['customer_name']); ?></span></p>';
+    h += '<div class="info-row"><span class="label">Customer:</span><span class="value"><?php echo esc_js($receipt_data['customer_name']); ?></span></div>';
     <?php endif; ?>
-    h += '<p><span>Staff:</span><span><?php echo isset($receipt_data['staff']) ? esc_js($receipt_data['staff']) : ''; ?></span></p>';
+    h += '<div class="info-row"><span class="label">Staff:</span><span class="value"><?php echo isset($receipt_data['staff']) ? esc_js($receipt_data['staff']) : ''; ?></span></div>';
     h += '</div>';
     
+    // Table with ITEM, PRICE, QTY, DISC, AMOUNT columns
     h += '<table class="items-table">';
-    h += '<tr><th>ITEM</th><th>QTY</th><th>AMOUNT</th></tr>';
+    h += '<tr><th>ITEM</th><th>PRICE</th><th>QTY</th><th>DISC</th><th>AMOUNT</th></tr>';
     <?php if (isset($receipt_data['items'])) : foreach ($receipt_data['items'] as $item) : ?>
-    h += '<tr><td><?php echo esc_js($item['product_name']); ?></td><td><?php echo intval($item['quantity']); ?></td><td>₦<?php echo number_format($item['total'], 0); ?></td></tr>';
+    h += '<tr>';
+    h += '<td><?php echo esc_js($item['product_name']); ?></td>';
+    h += '<td>₦<?php echo number_format($item['price'], 0); ?></td>';
+    h += '<td style="text-align:center"><?php echo intval($item['quantity']); ?></td>';
+    h += '<td style="text-align:center;color:#c00"><?php echo $item['discount'] > 0 ? '-₦' . number_format($item['discount'], 0) : '-'; ?></td>';
+    h += '<td><strong>₦<?php echo number_format($item['total'], 0); ?></strong></td>';
+    h += '</tr>';
     <?php endforeach; endif; ?>
     h += '</table>';
     
-    h += '<div class="total">';
-    h += '<p><span>Subtotal:</span><span>₦<?php echo isset($receipt_data['subtotal']) ? number_format($receipt_data['subtotal'], 0) : '0'; ?></span></p>';
+    h += '<div class="totals">';
+    h += '<div class="total-row"><span class="label">Subtotal:</span><span class="value">₦<?php echo isset($receipt_data['subtotal']) ? number_format($receipt_data['subtotal'], 0) : '0'; ?></span></div>';
     <?php if (isset($receipt_data['discount']) && $receipt_data['discount'] > 0) : ?>
-    h += '<p><span>Discount:</span><span style="color:#c00">-₦<?php echo number_format($receipt_data['discount'], 0); ?></span></p>';
-    <?php endif; ?>
-    h += '<p class="grand"><span>TOTAL:</span><span>₦<?php echo isset($receipt_data['grand_total']) ? number_format($receipt_data['grand_total'], 0) : '0'; ?></span></p>';
-    h += '<p><span>Payment Method:</span><span><?php echo isset($receipt_data['payment_method']) ? ucfirst(esc_js($receipt_data['payment_method'])) : ''; ?></span></p>';
-    <?php if (isset($receipt_data['transfer_amount']) && $receipt_data['transfer_amount'] > 0) : ?>
-    h += '<p><span>&nbsp;&nbsp;Transfer:</span><span>₦<?php echo number_format($receipt_data['transfer_amount'], 0); ?></span></p>';
-    <?php endif; ?>
-    <?php if (isset($receipt_data['cash_amount']) && $receipt_data['cash_amount'] > 0) : ?>
-    h += '<p><span>&nbsp;&nbsp;Cash:</span><span>₦<?php echo number_format($receipt_data['cash_amount'], 0); ?></span></p>';
+    h += '<div class="total-row"><span class="label">Total Discount:</span><span class="value" style="color:#c00">-₦<?php echo number_format($receipt_data['discount'], 0); ?></span></div>';
     <?php endif; ?>
     h += '</div>';
     
-    h += '<div class="footer"><p><strong>Thank you for your patronage!</strong></p><p>We appreciate your business</p><p style="margin-top:8px;font-size:10px">Powered by BendlessTech</p></div>';
+    h += '<div class="grand-total"><span>GRAND TOTAL:</span><span>₦<?php echo isset($receipt_data['grand_total']) ? number_format($receipt_data['grand_total'], 0) : '0'; ?></span></div>';
+    
+    h += '<div class="payment-info">';
+    h += '<div class="payment-row"><span class="label">Payment Method:</span><span class="value"><?php echo isset($receipt_data['payment_method']) ? ucfirst(esc_js($receipt_data['payment_method'])) : ''; ?></span></div>';
+    <?php if (isset($receipt_data['transfer_amount']) && $receipt_data['transfer_amount'] > 0) : ?>
+    h += '<div class="payment-row"><span class="label">Transfer/Card:</span><span class="value">₦<?php echo number_format($receipt_data['transfer_amount'], 0); ?></span></div>';
+    <?php endif; ?>
+    <?php if (isset($receipt_data['cash_amount']) && $receipt_data['cash_amount'] > 0) : ?>
+    h += '<div class="payment-row"><span class="label">Cash:</span><span class="value">₦<?php echo number_format($receipt_data['cash_amount'], 0); ?></span></div>';
+    <?php endif; ?>
+    <?php if (isset($receipt_data['bank_name']) && !empty($receipt_data['bank_name'])) : ?>
+    h += '<div class="payment-row"><span class="label">Bank:</span><span class="value"><?php echo esc_js($receipt_data['bank_name']); ?></span></div>';
+    <?php endif; ?>
+    h += '</div>';
+    
+    h += '<div class="footer"><p class="thanks">Thank you for your patronage!</p><p>We appreciate your business</p><p style="margin-top:5px;font-size:9px">Powered by BendlessTech</p></div>';
+    h += '</div>';
     
     printWindow.document.write(h);
     printWindow.document.write('</body></html>');

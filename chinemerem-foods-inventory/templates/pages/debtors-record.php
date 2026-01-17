@@ -582,10 +582,11 @@ if ('bluetooth' in navigator) {
     text += 'Debtor: <?php echo esc_js($order_receipt['debtor_name']); ?>\n';
     text += 'Staff: <?php echo esc_js($order_receipt['staff']); ?>\n';
     text += line + '\n';
-    text += 'ITEM              QTY    AMOUNT\n';
+    text += 'ITEM       PRICE  QTY   AMOUNT\n';
     text += '--------------------------------\n';
     <?php foreach ($order_receipt['items'] as $item) : ?>
-    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 16), 16); ?> <?php echo str_pad(intval($item['quantity']), 4); ?> N<?php echo str_pad(number_format($item['total'], 0), 8, ' ', STR_PAD_LEFT); ?>\n';
+    text += '<?php echo str_pad(substr(esc_js($item['product_name']), 0, 10), 10); ?> N<?php echo str_pad(number_format($item['price'], 0), 5); ?> <?php echo str_pad(intval($item['quantity']), 3); ?> N<?php echo str_pad(number_format($item['total'], 0), 6, ' ', STR_PAD_LEFT); ?>\n';
+    <?php if (isset($item['discount']) && $item['discount'] > 0) : ?>text += '           Disc: -N<?php echo number_format($item['discount'], 0); ?>\n';<?php endif; ?>
     <?php endforeach; ?>
     text += line + '\n';
     text += 'ORDER TOTAL:       N<?php echo str_pad(number_format($order_receipt['total'], 0), 9, ' ', STR_PAD_LEFT); ?>\n';
@@ -603,53 +604,65 @@ if ('bluetooth' in navigator) {
     }
 }
 
-// Fallback to browser print with improved formatting
+// Fallback to browser print with improved formatting - FULL WIDTH 80mm with PRICE column
 var w=window.open('','_blank','width=400,height=700');
 var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
 h+='@page{size:80mm auto;margin:0}';
 h+='*{margin:0;padding:0;box-sizing:border-box}';
-h+='body{font-family:Arial,Helvetica,sans-serif;font-size:14px;width:80mm;max-width:80mm;margin:0;padding:3mm;line-height:1.5;color:#000;background:#fff}';
-h+='.header{text-align:center;padding:10px 0;border-bottom:3px double #000;margin-bottom:12px}';
-h+='.header h2{font-size:20px;font-weight:bold;margin:0 0 5px;letter-spacing:1px}';
-h+='.header p{font-size:14px;margin:0;font-weight:500}';
-h+='.info{margin:12px 0;padding:10px 0;border-bottom:2px solid #000}';
-h+='.info p{display:flex;justify-content:space-between;margin:8px 0;font-size:13px}';
-h+='.info p span:first-child{font-weight:600}';
-h+='.items-table{width:100%;margin:12px 0;border-collapse:collapse}';
-h+='.items-table th{background:#000;color:#fff;padding:8px 5px;font-size:13px;font-weight:bold;text-align:left;border:1px solid #000}';
-h+='.items-table th:nth-child(2),.items-table th:nth-child(3){text-align:center}';
-h+='.items-table td{padding:10px 5px;font-size:13px;border:1px solid #000;border-top:none}';
-h+='.items-table td:nth-child(2){text-align:center;font-weight:bold;font-size:14px}';
-h+='.items-table td:nth-child(3){text-align:right;font-weight:bold;font-size:14px}';
-h+='.items-table tr:nth-child(even){background:#f5f5f5}';
-h+='.total{margin:12px 0;padding:12px 0;border-top:3px double #000}';
-h+='.total p{display:flex;justify-content:space-between;margin:8px 0;font-size:15px;font-weight:bold}';
-h+='.total .grand{font-size:18px;background:#000;color:#fff;padding:10px;margin:10px -3mm;width:calc(100% + 6mm)}';
-h+='.footer{text-align:center;margin-top:15px;padding-top:12px;border-top:2px dashed #000;font-size:12px}';
-h+='.credit-note{background:#ffe0e0;color:#c00;padding:10px;text-align:center;font-weight:bold;margin:10px 0;border:2px solid #c00}';
-h+='@media print{.no-print{display:none !important}}';
+h+='body{font-family:Arial,Helvetica,sans-serif;font-size:13px;width:80mm;max-width:80mm;margin:0 auto;padding:2mm;line-height:1.4;color:#000;background:#fff}';
+h+='.receipt{width:100%;max-width:76mm}';
+h+='.header{text-align:center;padding:8px 0;border-bottom:3px double #000;margin-bottom:10px}';
+h+='.header h2{font-size:18px;font-weight:bold;margin:0 0 3px;text-transform:uppercase}';
+h+='.header p{font-size:12px;margin:0;font-weight:600;color:#c00}';
+h+='.info{margin:8px 0;padding:8px 0;border-bottom:1px solid #000}';
+h+='.info-row{display:flex;justify-content:space-between;margin:4px 0;font-size:11px}';
+h+='.info-row .label{font-weight:600}';
+h+='.info-row .value{font-weight:bold}';
+h+='.items-table{width:100%;margin:8px 0;border-collapse:collapse;font-size:11px}';
+h+='.items-table th{background:#000;color:#fff;padding:5px 3px;font-size:10px;font-weight:bold;text-align:center;border:1px solid #000}';
+h+='.items-table th:first-child{text-align:left;width:30%}';
+h+='.items-table td{padding:6px 3px;border:1px solid #000;vertical-align:middle}';
+h+='.items-table td:first-child{text-align:left;font-size:10px}';
+h+='.items-table td:nth-child(2),.items-table td:nth-child(3){text-align:right;font-size:10px}';
+h+='.items-table td:nth-child(4){text-align:center;font-size:10px}';
+h+='.items-table td:nth-child(5){text-align:right;font-weight:bold;font-size:11px}';
+h+='.items-table tr:nth-child(even){background:#f8f8f8}';
+h+='.totals{margin:10px 0;padding:8px 0;border-top:2px solid #000}';
+h+='.total-row{display:flex;justify-content:space-between;margin:5px 0;font-size:14px;font-weight:bold}';
+h+='.grand-total{background:#000;color:#fff;padding:8px;margin:8px -2mm;font-size:14px;font-weight:bold;display:flex;justify-content:space-between}';
+h+='.balance-row{display:flex;justify-content:space-between;margin:8px 0;font-size:14px;font-weight:bold;color:#c00}';
+h+='.credit-note{background:#ffe0e0;color:#c00;padding:8px;text-align:center;font-weight:bold;margin:10px 0;border:2px solid #c00;font-size:12px}';
+h+='.footer{text-align:center;margin-top:10px;padding-top:8px;border-top:2px dashed #000;font-size:10px}';
+h+='.footer .thanks{font-weight:bold;font-size:11px}';
+h+='@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
 h+='</style></head><body>';
+h+='<div class="receipt">';
 h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>*** CREDIT ORDER ***</p></div>';
 h+='<div class="info">';
-h+='<p><span>Order No:</span><span style="font-weight:bold"><?php echo esc_js($order_receipt['order_number']); ?></span></p>';
-h+='<p><span>Date:</span><span><?php echo esc_js($order_receipt['date']); ?></span></p>';
-h+='<p><span>Time:</span><span><?php echo esc_js($order_receipt['time']); ?></span></p>';
-h+='<p><span>Debtor:</span><span style="font-weight:bold;font-size:14px"><?php echo esc_js($order_receipt['debtor_name']); ?></span></p>';
-h+='<p><span>Staff:</span><span><?php echo esc_js($order_receipt['staff']); ?></span></p>';
+h+='<div class="info-row"><span class="label">Order No:</span><span class="value"><?php echo esc_js($order_receipt['order_number']); ?></span></div>';
+h+='<div class="info-row"><span class="label">Date:</span><span class="value"><?php echo esc_js($order_receipt['date']); ?></span></div>';
+h+='<div class="info-row"><span class="label">Time:</span><span class="value"><?php echo esc_js($order_receipt['time']); ?></span></div>';
+h+='<div class="info-row"><span class="label">Debtor:</span><span class="value" style="color:#c00"><?php echo esc_js($order_receipt['debtor_name']); ?></span></div>';
+h+='<div class="info-row"><span class="label">Staff:</span><span class="value"><?php echo esc_js($order_receipt['staff']); ?></span></div>';
 h+='</div>';
 h+='<table class="items-table">';
-h+='<tr><th>ITEM</th><th>QTY</th><th>AMOUNT</th></tr>';
+h+='<tr><th>ITEM</th><th>PRICE</th><th>QTY</th><th>DISC</th><th>AMOUNT</th></tr>';
 <?php foreach ($order_receipt['items'] as $item) : ?>
-h+='<tr><td><?php echo esc_js($item['product_name']); ?></td><td><?php echo intval($item['quantity']); ?></td><td>₦<?php echo number_format($item['total'], 0); ?></td></tr>';
+h+='<tr>';
+h+='<td><?php echo esc_js($item['product_name']); ?></td>';
+h+='<td>₦<?php echo number_format($item['price'], 0); ?></td>';
+h+='<td style="text-align:center"><?php echo intval($item['quantity']); ?></td>';
+h+='<td style="text-align:center;color:#c00"><?php echo isset($item['discount']) && $item['discount'] > 0 ? '-₦' . number_format($item['discount'], 0) : '-'; ?></td>';
+h+='<td><strong>₦<?php echo number_format($item['total'], 0); ?></strong></td>';
+h+='</tr>';
 <?php endforeach; ?>
 h+='</table>';
-h+='<div class="total">';
-h+='<p class="grand"><span>ORDER TOTAL:</span><span>₦<?php echo number_format($order_receipt['total'], 0); ?></span></p>';
-h+='<p style="color:#c00"><span>NEW BALANCE:</span><span>₦<?php echo number_format($order_receipt['new_balance'], 0); ?></span></p>';
+h+='<div class="grand-total"><span>ORDER TOTAL:</span><span>₦<?php echo number_format($order_receipt['total'], 0); ?></span></div>';
+h+='<div class="balance-row"><span>NEW BALANCE:</span><span>₦<?php echo number_format($order_receipt['new_balance'], 0); ?></span></div>';
+h+='<div class="credit-note">⚠ CREDIT ORDER - PAYMENT PENDING</div>';
+h+='<div class="footer"><p class="thanks">Thank you for your patronage!</p><p style="margin-top:5px;font-size:9px">Powered by BendlessTech</p></div>';
 h+='</div>';
-h+='<div class="credit-note">CREDIT ORDER - PAYMENT PENDING</div>';
-h+='<div class="footer"><p><strong>Thank you for your patronage!</strong></p><p style="margin-top:8px;font-size:10px">Powered by BendlessTech</p></div>';
 h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
