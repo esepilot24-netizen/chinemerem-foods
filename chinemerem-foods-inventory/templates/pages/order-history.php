@@ -339,39 +339,39 @@ function closeReceipt() {
 }
 
 function printReceipt() {
-    var printContent = document.getElementById('receipt-body').innerHTML;
-    var printArea = document.getElementById('print-area');
+    var printContent = document.getElementById('print-content');
+    if (!printContent) {
+        alert('No receipt content found');
+        return;
+    }
     
     // Create a new window for printing
-    var printWindow = window.open('', '_blank', 'width=300,height=600');
+    var printWindow = window.open('', '_blank', 'width=350,height=700');
     
-    printWindow.document.write('<!DOCTYPE html><html><head><title>Receipt</title>');
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Print Receipt</title>');
     printWindow.document.write('<style>');
-    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
-    printWindow.document.write('.receipt-company { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }');
-    printWindow.document.write('.receipt-company h2 { margin: 0; font-size: 14px; }');
-    printWindow.document.write('.receipt-company p { margin: 0; font-size: 10px; }');
-    printWindow.document.write('.receipt-info p, .receipt-totals p { display: flex; justify-content: space-between; margin: 2px 0; }');
-    printWindow.document.write('.receipt-items { border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 5px 0; padding: 5px 0; }');
-    printWindow.document.write('.receipt-item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
-    printWindow.document.write('.receipt-totals .grand { font-weight: bold; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }');
-    printWindow.document.write('.receipt-footer { text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000; font-size: 10px; }');
+    printWindow.document.write('@page{size:80mm auto;margin:0}');
+    printWindow.document.write('*{margin:0;padding:0;box-sizing:border-box}');
+    printWindow.document.write('body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}');
+    printWindow.document.write('.receipt-company{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}');
+    printWindow.document.write('.receipt-company h2{font-size:16px;font-weight:bold;margin:0 0 5px}');
+    printWindow.document.write('.receipt-company p{font-size:11px;margin:0}');
+    printWindow.document.write('.receipt-info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}');
+    printWindow.document.write('.receipt-info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.receipt-items{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}');
+    printWindow.document.write('.receipt-item{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.receipt-totals{margin:10px 0;padding:10px 0;border-top:2px solid #000}');
+    printWindow.document.write('.receipt-totals p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.receipt-totals .grand{font-size:14px;font-weight:bold}');
+    printWindow.document.write('.receipt-footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}');
+    printWindow.document.write('.no-print{margin:15px 0;text-align:center}');
+    printWindow.document.write('.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}');
+    printWindow.document.write('@media print{.no-print{display:none !important}}');
     printWindow.document.write('</style></head><body>');
-    printWindow.document.write(printContent);
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
-    
-    // Wait for content to load, then print
-    printWindow.onload = function() {
-        printWindow.focus();
-        printWindow.print();
-    };
-    
-    // Fallback if onload doesn't fire
-    setTimeout(function() {
-        printWindow.focus();
-        printWindow.print();
-    }, 500);
 }
 
 // Close modal when clicking outside

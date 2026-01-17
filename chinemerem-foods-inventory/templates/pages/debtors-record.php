@@ -555,19 +555,50 @@ if(Math.abs(diff)>0.01&&tot>0){w.style.display='block';if(diff>0){w.textContent=
 </div>
 </div>
 <script>
-function printOrderReceipt(){var w=window.open('','_blank','width=300,height=600'),h='<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:"Courier New",monospace;font-size:12px;width:72mm;margin:0 auto;padding:2mm}.c{text-align:center}.ln{border-bottom:1px dashed #000;margin:5px 0}.r{display:flex;justify-content:space-between;margin:2px 0}.b{font-weight:bold}</style></head><body>';
-h+='<div class="c"><strong>CHINEMEREM FOODS</strong><br>Credit Order Receipt</div><div class="ln"></div>';
-h+='<div class="r"><span>Order #:</span><span><?php echo esc_js($order_receipt['order_number']); ?></span></div>';
-h+='<div class="r"><span>Date:</span><span><?php echo esc_js($order_receipt['date']); ?></span></div>';
-h+='<div class="r"><span>Debtor:</span><span><?php echo esc_js($order_receipt['debtor_name']); ?></span></div>';
-h+='<div class="ln"></div>';
+function printOrderReceipt(){
+var w=window.open('','_blank','width=350,height=700');
+var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
+h+='<style>';
+h+='@page{size:80mm auto;margin:0}';
+h+='*{margin:0;padding:0;box-sizing:border-box}';
+h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
+h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
+h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
+h+='.header p{font-size:11px;margin:0}';
+h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.info p{display:flex;justify-content:space-between;margin:5px 0;font-size:12px}';
+h+='.items{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.item{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
+h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
+h+='.no-print{margin:15px 0;text-align:center}';
+h+='.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
+h+='@media print{.no-print{display:none !important}}';
+h+='</style></head><body>';
+h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Credit Order Receipt</p></div>';
+h+='<div class="info">';
+h+='<p><span>Order #:</span><span><?php echo esc_js($order_receipt['order_number']); ?></span></p>';
+h+='<p><span>Date:</span><span><?php echo esc_js($order_receipt['date']); ?></span></p>';
+h+='<p><span>Time:</span><span><?php echo esc_js($order_receipt['time']); ?></span></p>';
+h+='<p><span>Debtor:</span><span style="font-weight:bold"><?php echo esc_js($order_receipt['debtor_name']); ?></span></p>';
+h+='<p><span>Staff:</span><span><?php echo esc_js($order_receipt['staff']); ?></span></p>';
+h+='</div>';
+h+='<div class="items">';
+h+='<div class="item" style="font-weight:bold;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:8px"><span>ITEM</span><span>QTY</span><span>AMT</span></div>';
 <?php foreach ($order_receipt['items'] as $item) : ?>
-h+='<div class="r"><span><?php echo esc_js($item['product_name']); ?> x<?php echo esc_js($item['quantity']); ?></span><span>N<?php echo number_format($item['total'], 0); ?></span></div>';
+h+='<div class="item"><span style="flex:1"><?php echo esc_js($item['product_name']); ?></span><span style="width:30px;text-align:center"><?php echo esc_js($item['quantity']); ?></span><span style="width:60px;text-align:right">N<?php echo number_format($item['total'], 0); ?></span></div>';
 <?php endforeach; ?>
-h+='<div class="ln"></div><div class="r b"><span>TOTAL:</span><span>N<?php echo number_format($order_receipt['total'], 0); ?></span></div>';
-h+='<div class="r"><span>NEW BALANCE:</span><span>N<?php echo number_format($order_receipt['new_balance'], 0); ?></span></div>';
-h+='<div class="ln"></div><div class="c">Powered by BendlessTech</div></body></html>';
-w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500)}
+h+='</div>';
+h+='<div class="total">';
+h+='<p><span>ORDER TOTAL:</span><span>N<?php echo number_format($order_receipt['total'], 0); ?></span></p>';
+h+='<p style="color:#cc0000"><span>NEW BALANCE:</span><span>N<?php echo number_format($order_receipt['new_balance'], 0); ?></span></p>';
+h+='</div>';
+h+='<div class="footer"><p>This is a credit order - Payment pending</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
+h+='</body></html>';
+w.document.write(h);w.document.close();
+}
 function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('order_done','rk')))); ?>'}
 </script>
 <?php endif; ?>
@@ -602,20 +633,51 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 </div>
 </div>
 <script>
-function printPayReceipt(){var w=window.open('','_blank','width=300,height=600'),h='<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:"Courier New",monospace;font-size:12px;width:72mm;margin:0 auto;padding:2mm}.c{text-align:center}.ln{border-bottom:1px dashed #000;margin:5px 0}.r{display:flex;justify-content:space-between;margin:2px 0}.b{font-weight:bold}</style></head><body>';
-h+='<div class="c"><strong>CHINEMEREM FOODS</strong><br>Debt Payment Receipt</div><div class="ln"></div>';
-h+='<div class="r"><span>Receipt #:</span><span><?php echo esc_js($payment_receipt['receipt_number']); ?></span></div>';
-h+='<div class="r"><span>Date:</span><span><?php echo esc_js($payment_receipt['date']); ?></span></div>';
-h+='<div class="r"><span>Debtor:</span><span><?php echo esc_js($payment_receipt['debtor_name']); ?></span></div>';
-h+='<div class="ln"></div>';
-h+='<div class="r"><span>Balance Before:</span><span>N<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></div>';
-h+='<div class="r b"><span>PAYMENT:</span><span>N<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></div>';
-<?php if ($payment_receipt['transfer_amount'] > 0) : ?>h+='<div class="r"><span>- Transfer:</span><span>N<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></div>';<?php endif; ?>
-<?php if ($payment_receipt['cash_amount'] > 0) : ?>h+='<div class="r"><span>- Cash:</span><span>N<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></div>';<?php endif; ?>
-<?php if ($payment_receipt['home_amount'] > 0) : ?>h+='<div class="r"><span>- Home Calc:</span><span>N<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></div>';<?php endif; ?>
-h+='<div class="ln"></div><div class="r b"><span>NEW BALANCE:</span><span>N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></div>';
-h+='<div class="ln"></div><div class="c">Thank you!<br>Powered by BendlessTech</div></body></html>';
-w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500)}
+function printPayReceipt(){
+var w=window.open('','_blank','width=350,height=700');
+var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
+h+='<style>';
+h+='@page{size:80mm auto;margin:0}';
+h+='*{margin:0;padding:0;box-sizing:border-box}';
+h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
+h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
+h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
+h+='.header p{font-size:11px;margin:0}';
+h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.payment{margin:10px 0;padding:10px 0;border-bottom:1px dashed #000}';
+h+='.payment p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.payment .big{font-size:14px;font-weight:bold;color:#008800}';
+h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
+h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
+h+='.no-print{margin:15px 0;text-align:center}';
+h+='.print-btn{background:#16a34a;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
+h+='@media print{.no-print{display:none !important}}';
+h+='</style></head><body>';
+h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Debt Payment Receipt</p></div>';
+h+='<div class="info">';
+h+='<p><span>Receipt #:</span><span><?php echo esc_js($payment_receipt['receipt_number']); ?></span></p>';
+h+='<p><span>Date:</span><span><?php echo esc_js($payment_receipt['date']); ?></span></p>';
+h+='<p><span>Time:</span><span><?php echo esc_js($payment_receipt['time']); ?></span></p>';
+h+='<p><span>Debtor:</span><span style="font-weight:bold"><?php echo esc_js($payment_receipt['debtor_name']); ?></span></p>';
+h+='<p><span>Staff:</span><span><?php echo esc_js($payment_receipt['staff']); ?></span></p>';
+h+='</div>';
+h+='<div class="payment">';
+h+='<p><span>Balance Before:</span><span style="color:#cc0000">N<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></p>';
+h+='<p class="big"><span>PAYMENT AMOUNT:</span><span>N<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></p>';
+<?php if ($payment_receipt['transfer_amount'] > 0) : ?>h+='<p><span>  - Via Transfer (<?php echo esc_js($payment_receipt['bank_name']); ?>):</span><span>N<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></p>';<?php endif; ?>
+<?php if ($payment_receipt['cash_amount'] > 0) : ?>h+='<p><span>  - Via Cash:</span><span>N<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></p>';<?php endif; ?>
+<?php if ($payment_receipt['home_amount'] > 0) : ?>h+='<p><span>  - Home Calculation:</span><span>N<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></p>';<?php endif; ?>
+h+='</div>';
+h+='<div class="total">';
+h+='<p style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#cc0000' : '#008800'; ?>"><span>NEW BALANCE:</span><span>N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>';
+h+='</div>';
+h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
+h+='</body></html>';
+w.document.write(h);w.document.close();
+}
 function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('pay_done','pk')))); ?>'}
 </script>
 <?php endif; ?>

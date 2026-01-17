@@ -257,31 +257,93 @@ fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&o
 }
 
 function printOrder(o){
-var w=window.open('','_blank','width=300,height=600'),h='<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:"Courier New",monospace;font-size:12px;width:72mm;margin:0 auto;padding:2mm}.c{text-align:center}.ln{border-bottom:1px dashed #000;margin:5px 0}.r{display:flex;justify-content:space-between;margin:2px 0}.b{font-weight:bold}</style></head><body>';
-h+='<div class="c"><strong>CHINEMEREM FOODS</strong><br>Credit Order Receipt</div><div class="ln"></div>';
-h+='<div class="r"><span>Order #:</span><span>'+(o.order_number||'N/A')+'</span></div>';
-h+='<div class="r"><span>Date:</span><span>'+(o.order_date||'N/A')+'</span></div>';
-h+='<div class="r"><span>Customer:</span><span>'+(o.customer_name||'N/A')+'</span></div><div class="ln"></div>';
-if(o.items&&o.items.length>0){o.items.forEach(function(i){h+='<div class="r"><span>'+i.product_name+' x'+i.quantity+'</span><span>N'+parseFloat(i.total).toLocaleString()+'</span></div>'})}
-h+='<div class="ln"></div><div class="r b"><span>TOTAL:</span><span>N'+parseFloat(o.grand_total||0).toLocaleString()+'</span></div><div class="ln"></div><div class="c">Powered by BendlessTech</div></body></html>';
-w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500);
+var w=window.open('','_blank','width=350,height=700');
+var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
+h+='<style>';
+h+='@page{size:80mm auto;margin:0}';
+h+='*{margin:0;padding:0;box-sizing:border-box}';
+h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
+h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
+h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
+h+='.header p{font-size:11px;margin:0}';
+h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.items{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.item{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
+h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
+h+='.no-print{margin:15px 0;text-align:center}';
+h+='.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
+h+='@media print{.no-print{display:none !important}}';
+h+='</style></head><body>';
+h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Credit Order Receipt (Reprint)</p></div>';
+h+='<div class="info">';
+h+='<p><span>Order #:</span><span>'+(o.order_number||'N/A')+'</span></p>';
+h+='<p><span>Date:</span><span>'+(o.order_date||'N/A')+'</span></p>';
+h+='<p><span>Time:</span><span>'+(o.order_time||'N/A')+'</span></p>';
+h+='<p><span>Customer:</span><span style="font-weight:bold">'+(o.customer_name||'N/A')+'</span></p>';
+h+='</div>';
+h+='<div class="items">';
+h+='<div class="item" style="font-weight:bold;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:8px"><span>ITEM</span><span>QTY</span><span>AMT</span></div>';
+if(o.items&&o.items.length>0){o.items.forEach(function(i){
+h+='<div class="item"><span style="flex:1">'+i.product_name+'</span><span style="width:30px;text-align:center">'+i.quantity+'</span><span style="width:60px;text-align:right">N'+parseFloat(i.total).toLocaleString()+'</span></div>';
+})}
+h+='</div>';
+h+='<div class="total">';
+h+='<p><span>ORDER TOTAL:</span><span>N'+parseFloat(o.grand_total||0).toLocaleString()+'</span></p>';
+h+='</div>';
+h+='<div class="footer"><p>This is a credit order - Payment pending</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
+h+='</body></html>';
+w.document.write(h);w.document.close();
 }
 
 function reprintPay(id){
 var p=payData[id];if(!p){alert('Not found');return}
-var w=window.open('','_blank','width=300,height=600'),h='<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:"Courier New",monospace;font-size:12px;width:72mm;margin:0 auto;padding:2mm}.c{text-align:center}.ln{border-bottom:1px dashed #000;margin:5px 0}.r{display:flex;justify-content:space-between;margin:2px 0}.b{font-weight:bold}</style></head><body>';
-h+='<div class="c"><strong>CHINEMEREM FOODS</strong><br>Debt Payment Receipt</div><div class="ln"></div>';
-h+='<div class="r"><span>Receipt #:</span><span>PAY-'+p.id+'</span></div>';
-h+='<div class="r"><span>Date:</span><span>'+p.transaction_date+'</span></div>';
-h+='<div class="r"><span>Time:</span><span>'+p.transaction_time+'</span></div>';
-h+='<div class="r"><span>Debtor:</span><span>'+p.debtor_name+'</span></div><div class="ln"></div>';
-h+='<div class="r"><span>Balance Before:</span><span>N'+parseFloat(p.balance_before).toLocaleString()+'</span></div>';
-h+='<div class="r b"><span>PAYMENT:</span><span>N'+parseFloat(p.amount).toLocaleString()+'</span></div>';
-if(p.transfer_amount>0)h+='<div class="r"><span>- Transfer:</span><span>N'+parseFloat(p.transfer_amount).toLocaleString()+'</span></div>';
-if(p.cash_amount>0)h+='<div class="r"><span>- Cash:</span><span>N'+parseFloat(p.cash_amount).toLocaleString()+'</span></div>';
-h+='<div class="ln"></div><div class="r b"><span>NEW BALANCE:</span><span>N'+parseFloat(p.balance_after).toLocaleString()+'</span></div>';
-h+='<div class="r"><span>Staff:</span><span>'+(p.staff_name||'-')+'</span></div><div class="ln"></div><div class="c">Thank you!<br>Powered by BendlessTech</div></body></html>';
-w.document.write(h);w.document.close();w.onload=function(){w.focus();w.print()};setTimeout(function(){w.focus();w.print()},500);
+var w=window.open('','_blank','width=350,height=700');
+var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
+h+='<style>';
+h+='@page{size:80mm auto;margin:0}';
+h+='*{margin:0;padding:0;box-sizing:border-box}';
+h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
+h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
+h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
+h+='.header p{font-size:11px;margin:0}';
+h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='.info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.payment{margin:10px 0;padding:10px 0;border-bottom:1px dashed #000}';
+h+='.payment p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
+h+='.payment .big{font-size:14px;font-weight:bold;color:#008800}';
+h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
+h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
+h+='.no-print{margin:15px 0;text-align:center}';
+h+='.print-btn{background:#16a34a;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
+h+='@media print{.no-print{display:none !important}}';
+h+='</style></head><body>';
+h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Debt Payment Receipt (Reprint)</p></div>';
+h+='<div class="info">';
+h+='<p><span>Receipt #:</span><span>PAY-'+p.id+'</span></p>';
+h+='<p><span>Date:</span><span>'+p.transaction_date+'</span></p>';
+h+='<p><span>Time:</span><span>'+p.transaction_time+'</span></p>';
+h+='<p><span>Debtor:</span><span style="font-weight:bold">'+p.debtor_name+'</span></p>';
+h+='<p><span>Staff:</span><span>'+(p.staff_name||'-')+'</span></p>';
+h+='</div>';
+h+='<div class="payment">';
+h+='<p><span>Balance Before:</span><span style="color:#cc0000">N'+parseFloat(p.balance_before).toLocaleString()+'</span></p>';
+h+='<p class="big"><span>PAYMENT AMOUNT:</span><span>N'+parseFloat(p.amount).toLocaleString()+'</span></p>';
+if(p.transfer_amount>0)h+='<p><span>  - Via Transfer:</span><span>N'+parseFloat(p.transfer_amount).toLocaleString()+'</span></p>';
+if(p.cash_amount>0)h+='<p><span>  - Via Cash:</span><span>N'+parseFloat(p.cash_amount).toLocaleString()+'</span></p>';
+h+='</div>';
+h+='<div class="total">';
+var balColor=parseFloat(p.balance_after)>0?'#cc0000':'#008800';
+h+='<p style="color:'+balColor+'"><span>NEW BALANCE:</span><span>N'+parseFloat(p.balance_after).toLocaleString()+'</span></p>';
+h+='</div>';
+h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+h+='<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
+h+='</body></html>';
+w.document.write(h);w.document.close();
 }
 
 // Close modal on outside click or Escape

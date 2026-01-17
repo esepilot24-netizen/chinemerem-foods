@@ -923,54 +923,74 @@ function submitOrder() {
 
 function printReceipt() {
     // Create print window with proper initialization
-    var printWindow = window.open('', '_blank', 'width=400,height=600');
+    var printWindow = window.open('', '_blank', 'width=400,height=700');
     
     if (!printWindow) {
         alert('Please allow popups to print receipts');
         return;
     }
     
-    var receiptHtml = document.getElementById('receipt-print-area').innerHTML;
-    
-    printWindow.document.write('<!DOCTYPE html><html><head><title>Receipt</title>');
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Print Receipt</title>');
     printWindow.document.write('<style>');
-    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
-    printWindow.document.write('.receipt-company { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }');
-    printWindow.document.write('.receipt-company h2 { margin: 0; font-size: 14px; }');
-    printWindow.document.write('.receipt-company p { margin: 0; font-size: 10px; }');
-    printWindow.document.write('.receipt-info p { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
-    printWindow.document.write('.receipt-items { border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 5px 0; padding: 5px 0; }');
-    printWindow.document.write('.receipt-item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
-    printWindow.document.write('.receipt-item .name { flex: 1; }');
-    printWindow.document.write('.receipt-item .qty { width: 30px; text-align: center; }');
-    printWindow.document.write('.receipt-item .price { width: 60px; text-align: right; }');
-    printWindow.document.write('.receipt-totals p { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }');
-    printWindow.document.write('.receipt-totals .grand { font-weight: bold; font-size: 12px; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }');
-    printWindow.document.write('.receipt-footer { text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000; font-size: 10px; }');
-    printWindow.document.write('@media print { @page { margin: 0; size: 72mm auto; } body { margin: 0; padding: 2mm; } }');
+    printWindow.document.write('@page{size:80mm auto;margin:0}');
+    printWindow.document.write('*{margin:0;padding:0;box-sizing:border-box}');
+    printWindow.document.write('body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}');
+    printWindow.document.write('.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}');
+    printWindow.document.write('.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}');
+    printWindow.document.write('.header p{font-size:11px;margin:0}');
+    printWindow.document.write('.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}');
+    printWindow.document.write('.info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.items{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}');
+    printWindow.document.write('.item{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}');
+    printWindow.document.write('.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}');
+    printWindow.document.write('.total .grand{font-size:14px;font-weight:bold}');
+    printWindow.document.write('.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}');
+    printWindow.document.write('.no-print{margin:15px 0;text-align:center}');
+    printWindow.document.write('.print-btn{background:#7c3aed;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}');
+    printWindow.document.write('@media print{.no-print{display:none !important}}');
     printWindow.document.write('</style></head><body>');
-    printWindow.document.write(receiptHtml);
+    
+    // Build receipt content
+    var h = '<div class="header"><h2>CHINEMEREM FOODS</h2><p>Sales Receipt</p></div>';
+    h += '<div class="info">';
+    h += '<p><span>Order #:</span><span><?php echo isset($receipt_data['order_number']) ? esc_js($receipt_data['order_number']) : ''; ?></span></p>';
+    h += '<p><span>Date:</span><span><?php echo isset($receipt_data['date']) ? esc_js($receipt_data['date']) : ''; ?></span></p>';
+    h += '<p><span>Time:</span><span><?php echo isset($receipt_data['time']) ? esc_js($receipt_data['time']) : ''; ?></span></p>';
+    <?php if (isset($receipt_data['customer_name']) && !empty($receipt_data['customer_name'])) : ?>
+    h += '<p><span>Customer:</span><span style="font-weight:bold"><?php echo esc_js($receipt_data['customer_name']); ?></span></p>';
+    <?php endif; ?>
+    h += '<p><span>Staff:</span><span><?php echo isset($receipt_data['staff']) ? esc_js($receipt_data['staff']) : ''; ?></span></p>';
+    h += '</div>';
+    
+    h += '<div class="items">';
+    h += '<div class="item" style="font-weight:bold;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:8px"><span>ITEM</span><span>QTY</span><span>AMT</span></div>';
+    <?php if (isset($receipt_data['items'])) : foreach ($receipt_data['items'] as $item) : ?>
+    h += '<div class="item"><span style="flex:1"><?php echo esc_js($item['product_name']); ?></span><span style="width:30px;text-align:center"><?php echo esc_js($item['quantity']); ?></span><span style="width:60px;text-align:right">N<?php echo number_format($item['total'], 0); ?></span></div>';
+    <?php endforeach; endif; ?>
+    h += '</div>';
+    
+    h += '<div class="total">';
+    h += '<p><span>Subtotal:</span><span>N<?php echo isset($receipt_data['subtotal']) ? number_format($receipt_data['subtotal'], 0) : '0'; ?></span></p>';
+    <?php if (isset($receipt_data['discount']) && $receipt_data['discount'] > 0) : ?>
+    h += '<p><span>Discount:</span><span>-N<?php echo number_format($receipt_data['discount'], 0); ?></span></p>';
+    <?php endif; ?>
+    h += '<p class="grand"><span>GRAND TOTAL:</span><span>N<?php echo isset($receipt_data['grand_total']) ? number_format($receipt_data['grand_total'], 0) : '0'; ?></span></p>';
+    h += '<p><span>Payment:</span><span><?php echo isset($receipt_data['payment_method']) ? ucfirst(esc_js($receipt_data['payment_method'])) : ''; ?></span></p>';
+    <?php if (isset($receipt_data['transfer_amount']) && $receipt_data['transfer_amount'] > 0) : ?>
+    h += '<p><span>  - Transfer:</span><span>N<?php echo number_format($receipt_data['transfer_amount'], 0); ?></span></p>';
+    <?php endif; ?>
+    <?php if (isset($receipt_data['cash_amount']) && $receipt_data['cash_amount'] > 0) : ?>
+    h += '<p><span>  - Cash:</span><span>N<?php echo number_format($receipt_data['cash_amount'], 0); ?></span></p>';
+    <?php endif; ?>
+    h += '</div>';
+    
+    h += '<div class="footer"><p>Thank you for your patronage!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
+    h += '<div class="no-print"><button class="print-btn" onclick="window.print()">SELECT PRINTER & PRINT</button><p style="margin-top:10px;font-size:12px;color:#666">Click the button above to open printer selection</p></div>';
+    
+    printWindow.document.write(h);
     printWindow.document.write('</body></html>');
     printWindow.document.close();
-    
-    // Use onload with fallback
-    var printed = false;
-    printWindow.onload = function() {
-        if (!printed) {
-            printed = true;
-            printWindow.focus();
-            printWindow.print();
-        }
-    };
-    
-    // Fallback timeout
-    setTimeout(function() {
-        if (!printed) {
-            printed = true;
-            printWindow.focus();
-            printWindow.print();
-        }
-    }, 800);
 }
 
 function generateTextReceipt() {
