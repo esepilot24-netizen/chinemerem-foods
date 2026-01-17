@@ -197,18 +197,14 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
 
 // Check for order success redirect message and load receipt from transient
 $receipt_data = null;
+$show_order_receipt = false;
 if (isset($_GET['order_success']) && $_GET['order_success'] === '1') {
-    $debtor_name = isset($_GET['debtor_name']) ? urldecode($_GET['debtor_name']) : '';
-    $order_total = isset($_GET['order_total']) ? floatval($_GET['order_total']) : 0;
-    $new_balance = isset($_GET['new_balance']) ? floatval($_GET['new_balance']) : 0;
-    $message = 'Order of ₦' . number_format($order_total, 2) . ' added to ' . esc_html($debtor_name) . '\'s debt. New balance: ₦' . number_format($new_balance, 2);
-    $message_type = 'success';
-    
-    // Load receipt from transient if available
+    // Load receipt from transient if available - show receipt popup directly (no success popup)
     if (isset($_GET['receipt_key'])) {
         $receipt_data = get_transient($_GET['receipt_key']);
         if ($receipt_data) {
             delete_transient($_GET['receipt_key']); // Delete after reading
+            $show_order_receipt = true;
         }
     }
 }
@@ -308,12 +304,30 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
                 // Update financial summary to include debtor payments
                 CFI_Financial::update_daily_summary(current_time('Y-m-d'));
                 
-                // Redirect to debtors list with success message to prevent form resubmission and show fresh data
+                // Store payment receipt data in transient for display after redirect
+                $payment_receipt_data = array(
+                    'receipt_number' => 'PAY-' . date('Ymd') . '-' . substr(uniqid(), -6),
+                    'date' => current_time('d/m/Y'),
+                    'time' => current_time('H:i'),
+                    'debtor_name' => $debtor->name,
+                    'payment_amount' => $total_payment,
+                    'transfer_amount' => $transfer_amount,
+                    'cash_amount' => $cash_amount,
+                    'home_amount' => $home_amount,
+                    'bank_name' => $bank_name,
+                    'balance_before' => $balance_before,
+                    'new_balance' => $new_balance,
+                    'staff' => wp_get_current_user()->display_name
+                );
+                
+                // Store receipt in transient (expires in 5 minutes)
+                $payment_receipt_key = 'cfi_payment_receipt_' . get_current_user_id() . '_' . time();
+                set_transient($payment_receipt_key, $payment_receipt_data, 5 * MINUTE_IN_SECONDS);
+                
+                // Redirect to debtors list with receipt key to prevent form resubmission and show receipt popup
                 $redirect_url = add_query_arg(array(
                     'payment_success' => '1',
-                    'debtor_name' => urlencode($debtor->name),
-                    'payment_amount' => $total_payment,
-                    'new_balance' => $new_balance
+                    'payment_receipt_key' => $payment_receipt_key
                 ), remove_query_arg(array('debtor', 'action')));
                 
                 wp_redirect($redirect_url);
@@ -326,13 +340,18 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
     }
 }
 
-// Check for payment success redirect message
+// Check for payment success redirect message and load payment receipt from transient
+$payment_receipt_data = null;
+$show_payment_receipt = false;
 if (isset($_GET['payment_success']) && $_GET['payment_success'] === '1') {
-    $debtor_name = isset($_GET['debtor_name']) ? urldecode($_GET['debtor_name']) : '';
-    $payment_amount = isset($_GET['payment_amount']) ? floatval($_GET['payment_amount']) : 0;
-    $new_balance = isset($_GET['new_balance']) ? floatval($_GET['new_balance']) : 0;
-    $message = 'Payment of ₦' . number_format($payment_amount, 2) . ' recorded for ' . esc_html($debtor_name) . '. New balance: ₦' . number_format($new_balance, 2);
-    $message_type = 'success';
+    // Load payment receipt from transient if available - show receipt popup directly (no success popup)
+    if (isset($_GET['payment_receipt_key'])) {
+        $payment_receipt_data = get_transient($_GET['payment_receipt_key']);
+        if ($payment_receipt_data) {
+            delete_transient($_GET['payment_receipt_key']); // Delete after reading
+            $show_payment_receipt = true;
+        }
+    }
 }
 
 // Get debtors and products - use fresh database queries to avoid any caching
@@ -791,7 +810,7 @@ if ($selected_debtor_id) {
     <?php endif; ?>
 </main>
 
-<?php if ($receipt_data) : ?>
+<?php if ($show_order_receipt && $receipt_data) : ?>
 <!-- Receipt Modal -->
 <div class="receipt-modal" id="receipt-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
     <div style="background: white; max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
@@ -938,83 +957,144 @@ function printReceipt() {
     }, 250);
 }
 function closeReceipt() {
-    <?php if (isset($redirect_after_receipt)) : ?>
-    window.location.href = '<?php echo esc_js($redirect_after_receipt); ?>';
-    <?php else : ?>
     document.getElementById('receipt-modal').style.display = 'none';
-    window.location.href = '<?php echo esc_url(remove_query_arg(array('debtor', 'action'))); ?>';
-    <?php endif; ?>
+    // Redirect to clean URL without parameters
+    window.location.href = '<?php echo esc_url(remove_query_arg(array('order_success', 'receipt_key', 'debtor', 'action'))); ?>';
 }
 </script>
 <?php endif; ?>
 
-<?php 
-// Show success popup modal if there's a success message from redirect
-$show_success_popup = (isset($_GET['order_success']) && $_GET['order_success'] === '1') || 
-                      (isset($_GET['payment_success']) && $_GET['payment_success'] === '1');
-if ($show_success_popup) : 
-    $popup_title = '';
-    $popup_message = '';
-    $popup_details = array();
-    
-    if (isset($_GET['order_success'])) {
-        $popup_title = 'Order Added Successfully!';
-        $popup_message = 'The order has been added to the debtor\'s account.';
-        $popup_details = array(
-            'Debtor' => urldecode($_GET['debtor_name'] ?? ''),
-            'Order Total' => '₦' . number_format(floatval($_GET['order_total'] ?? 0), 2),
-            'New Balance' => '₦' . number_format(floatval($_GET['new_balance'] ?? 0), 2)
-        );
-    } elseif (isset($_GET['payment_success'])) {
-        $popup_title = 'Payment Recorded Successfully!';
-        $popup_message = 'The payment has been recorded and the balance updated.';
-        $popup_details = array(
-            'Debtor' => urldecode($_GET['debtor_name'] ?? ''),
-            'Payment Amount' => '₦' . number_format(floatval($_GET['payment_amount'] ?? 0), 2),
-            'New Balance' => '₦' . number_format(floatval($_GET['new_balance'] ?? 0), 2)
-        );
-    }
-?>
-<!-- Success Popup Modal -->
-<div id="success-popup-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-    <div style="background: white; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); overflow: hidden; animation: popupSlide 0.3s ease;">
-        <div style="background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 1.5rem; text-align: center;">
-            <div style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                <i class="fas fa-check" style="font-size: 2rem; color: #16a34a;"></i>
-            </div>
-            <h2 style="margin: 0; font-size: 1.25rem;"><?php echo esc_html($popup_title); ?></h2>
+<?php if ($show_payment_receipt && $payment_receipt_data) : ?>
+<!-- Payment Receipt Modal -->
+<div class="receipt-modal" id="payment-receipt-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
+    <div style="background: white; max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
+        <div style="background: #16a34a; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0;"><i class="fas fa-receipt"></i> Payment Receipt</h3>
+            <button onclick="closePaymentReceipt()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
-        <div style="padding: 1.5rem;">
-            <p style="text-align: center; color: #64748b; margin-bottom: 1rem;"><?php echo esc_html($popup_message); ?></p>
-            <?php if (!empty($popup_details)) : ?>
-            <div style="background: #f1f5f9; border-radius: 8px; padding: 1rem;">
-                <?php foreach ($popup_details as $label => $value) : ?>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
-                    <span style="color: #64748b;"><?php echo esc_html($label); ?>:</span>
-                    <span style="font-weight: 700; color: #001943;"><?php echo esc_html($value); ?></span>
-                </div>
-                <?php endforeach; ?>
+        <div id="payment-receipt-print-area" style="padding: 1.5rem;">
+            <div style="text-align: center; margin-bottom: 1rem; border-bottom: 2px dashed #e2e8f0; padding-bottom: 1rem;">
+                <h2 style="color: #001943; margin: 0 0 0.25rem 0;">Chinemerem Foods</h2>
+                <p style="color: #64748b; font-size: 0.8rem; margin: 0;">Debt Payment Receipt</p>
             </div>
-            <?php endif; ?>
+            
+            <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Receipt #:</span> <strong><?php echo esc_html($payment_receipt_data['receipt_number']); ?></strong></p>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Date:</span> <?php echo esc_html($payment_receipt_data['date']); ?></p>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Time:</span> <?php echo esc_html($payment_receipt_data['time']); ?></p>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Debtor:</span> <strong style="color: #16a34a;"><?php echo esc_html($payment_receipt_data['debtor_name']); ?></strong></p>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Staff:</span> <?php echo esc_html($payment_receipt_data['staff']); ?></p>
+            </div>
+            
+            <div style="border-top: 1px dashed #e2e8f0; border-bottom: 1px dashed #e2e8f0; padding: 0.5rem 0; margin: 0.5rem 0;">
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between;"><span>Balance Before:</span> <span style="color: #dc2626;">₦<?php echo number_format($payment_receipt_data['balance_before'], 0); ?></span></p>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between; font-weight: 600; font-size: 1.1rem; color: #16a34a;"><span>Payment Amount:</span> <span>₦<?php echo number_format($payment_receipt_data['payment_amount'], 0); ?></span></p>
+                <?php if ($payment_receipt_data['transfer_amount'] > 0) : ?>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between; font-size: 0.8rem;"><span>- Via Transfer (<?php echo esc_html($payment_receipt_data['bank_name']); ?>):</span> <span>₦<?php echo number_format($payment_receipt_data['transfer_amount'], 0); ?></span></p>
+                <?php endif; ?>
+                <?php if ($payment_receipt_data['cash_amount'] > 0) : ?>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between; font-size: 0.8rem;"><span>- Via Cash:</span> <span>₦<?php echo number_format($payment_receipt_data['cash_amount'], 0); ?></span></p>
+                <?php endif; ?>
+                <?php if ($payment_receipt_data['home_amount'] > 0) : ?>
+                <p style="margin: 0.25rem 0; display: flex; justify-content: space-between; font-size: 0.8rem;"><span>- Home Calculation:</span> <span>₦<?php echo number_format($payment_receipt_data['home_amount'], 0); ?></span></p>
+                <?php endif; ?>
+            </div>
+            
+            <div style="margin-top: 0.5rem; font-size: 0.85rem;">
+                <p style="display: flex; justify-content: space-between; margin: 0.25rem 0; font-size: 1.1rem; font-weight: 700; color: #001943; border-top: 2px solid #001943; padding-top: 0.5rem; margin-top: 0.5rem;">
+                    <span>New Balance:</span>
+                    <span style="color: <?php echo $payment_receipt_data['new_balance'] > 0 ? '#dc2626' : '#16a34a'; ?>;">₦<?php echo number_format($payment_receipt_data['new_balance'], 0); ?></span>
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed #e2e8f0; font-size: 0.75rem; color: #64748b;">
+                <p style="margin: 0;">Payment received with thanks</p>
+                <p style="margin: 0;">Powered by BendlessTech</p>
+            </div>
         </div>
-        <div style="padding: 1rem 1.5rem 1.5rem; text-align: center;">
-            <button onclick="closeSuccessPopup()" class="cfi-btn cfi-btn-success" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+        <div style="display: flex; gap: 0.5rem; padding: 1rem; background: #f1f5f9;">
+            <button onclick="printPaymentReceipt()" class="cfi-btn cfi-btn-primary" style="flex: 1; justify-content: center; background: #7c3aed;">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button onclick="closePaymentReceipt()" class="cfi-btn cfi-btn-success" style="flex: 1; justify-content: center;">
                 <i class="fas fa-check"></i> Done
             </button>
         </div>
     </div>
 </div>
-<style>
-@keyframes popupSlide {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-</style>
 <script>
-function closeSuccessPopup() {
-    document.getElementById('success-popup-modal').style.display = 'none';
-    // Remove the URL parameters by redirecting to clean URL
-    window.location.href = '<?php echo esc_url(remove_query_arg(array('order_success', 'payment_success', 'debtor_name', 'order_total', 'payment_amount', 'new_balance'))); ?>';
+function printPaymentReceipt() {
+    var lineWidth = 32;
+    var lines = [];
+    
+    function centerText(text) {
+        var padding = Math.floor((lineWidth - text.length) / 2);
+        return ' '.repeat(Math.max(0, padding)) + text;
+    }
+    
+    function leftRight(left, right) {
+        var space = lineWidth - left.length - right.length;
+        return left + ' '.repeat(Math.max(1, space)) + right;
+    }
+    
+    function separator(char) {
+        return char.repeat(lineWidth);
+    }
+    
+    lines.push(centerText('CHINEMEREM FOODS'));
+    lines.push(centerText('Debt Payment Receipt'));
+    lines.push(separator('='));
+    
+    lines.push(leftRight('Receipt #:', '<?php echo esc_js($payment_receipt_data['receipt_number']); ?>'));
+    lines.push(leftRight('Date:', '<?php echo esc_js($payment_receipt_data['date']); ?>'));
+    lines.push(leftRight('Time:', '<?php echo esc_js($payment_receipt_data['time']); ?>'));
+    lines.push(leftRight('Debtor:', '<?php echo esc_js($payment_receipt_data['debtor_name']); ?>'));
+    lines.push(leftRight('Staff:', '<?php echo esc_js($payment_receipt_data['staff']); ?>'));
+    lines.push(separator('-'));
+    
+    lines.push(leftRight('Balance Before:', 'N<?php echo number_format($payment_receipt_data['balance_before'], 0); ?>'));
+    lines.push(separator('='));
+    lines.push(leftRight('PAYMENT:', 'N<?php echo number_format($payment_receipt_data['payment_amount'], 0); ?>'));
+    <?php if ($payment_receipt_data['transfer_amount'] > 0) : ?>
+    lines.push(leftRight('- Transfer:', 'N<?php echo number_format($payment_receipt_data['transfer_amount'], 0); ?>'));
+    <?php endif; ?>
+    <?php if ($payment_receipt_data['cash_amount'] > 0) : ?>
+    lines.push(leftRight('- Cash:', 'N<?php echo number_format($payment_receipt_data['cash_amount'], 0); ?>'));
+    <?php endif; ?>
+    <?php if ($payment_receipt_data['home_amount'] > 0) : ?>
+    lines.push(leftRight('- Home Calc:', 'N<?php echo number_format($payment_receipt_data['home_amount'], 0); ?>'));
+    <?php endif; ?>
+    lines.push(separator('='));
+    lines.push(leftRight('NEW BALANCE:', 'N<?php echo number_format($payment_receipt_data['new_balance'], 0); ?>'));
+    lines.push(separator('-'));
+    lines.push(centerText('Payment received'));
+    lines.push(centerText('with thanks'));
+    lines.push(separator('-'));
+    lines.push(centerText('Powered by'));
+    lines.push(centerText('BendlessTech'));
+    lines.push('');
+    
+    var receiptText = lines.join('\n');
+    
+    var printWindow = window.open('', '', 'width=300,height=600');
+    printWindow.document.write('<html><head><title>Payment Receipt</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; padding: 2mm; }');
+    printWindow.document.write('pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; }');
+    printWindow.document.write('@media print { body { width: 72mm; margin: 0; padding: 1mm; } }');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write('<pre>' + receiptText + '</pre>');
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(function() {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+function closePaymentReceipt() {
+    document.getElementById('payment-receipt-modal').style.display = 'none';
+    window.location.href = '<?php echo esc_url(remove_query_arg(array('payment_success', 'payment_receipt_key'))); ?>';
 }
 </script>
 <?php endif; ?>

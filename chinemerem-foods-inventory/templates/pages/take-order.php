@@ -136,7 +136,7 @@ if (isset($_POST['cfi_submit_order']) && wp_verify_nonce($_POST['cfi_order_nonce
                 // Update financial summary
                 CFI_Financial::update_daily_summary(current_time('Y-m-d'));
                 
-                // Prepare receipt data
+                // Prepare receipt data and store in transient for PRG pattern
                 $receipt_data = array(
                     'order_number' => $order_number,
                     'date' => current_time('d/m/Y'),
@@ -154,13 +154,32 @@ if (isset($_POST['cfi_submit_order']) && wp_verify_nonce($_POST['cfi_order_nonce
                     'staff' => wp_get_current_user()->display_name
                 );
                 
-                $message = 'Order submitted successfully! Order #' . $order_number;
-                $message_type = 'success';
+                // Store receipt in transient (expires in 5 minutes) for PRG pattern
+                $receipt_key = 'cfi_order_receipt_' . get_current_user_id() . '_' . time();
+                set_transient($receipt_key, $receipt_data, 5 * MINUTE_IN_SECONDS);
+                
+                // Redirect to same page with receipt key to prevent form resubmission
+                $redirect_url = add_query_arg(array(
+                    'order_success' => '1',
+                    'receipt_key' => $receipt_key
+                ), strtok($_SERVER['REQUEST_URI'], '?'));
+                
+                wp_redirect($redirect_url);
+                exit;
             } else {
                 $message = 'Failed to save order. Please try again.';
                 $message_type = 'error';
             }
         }
+    }
+}
+
+// Check for order success and load receipt from transient
+$receipt_data = null;
+if (isset($_GET['order_success']) && $_GET['order_success'] === '1' && isset($_GET['receipt_key'])) {
+    $receipt_data = get_transient($_GET['receipt_key']);
+    if ($receipt_data) {
+        delete_transient($_GET['receipt_key']); // Delete after reading
     }
 }
 
