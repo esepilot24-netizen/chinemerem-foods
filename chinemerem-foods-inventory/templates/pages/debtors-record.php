@@ -120,6 +120,9 @@ if (isset($_POST['cfi_debtor_order_submit']) && wp_verify_nonce($_POST['cfi_debt
                         ),
                         array('%d', '%d', '%f', '%f', '%f', '%f')
                     );
+                    
+                    // Update stock credit_supply column for this product
+                    CFI_Stock::update_credit_supply($item['product_id'], $item['quantity'], current_time('Y-m-d'));
                 }
                 
                 // Update debtor balance - use direct query for reliability
@@ -462,6 +465,10 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
                 <span>Grand Total:</span>
                 <span class="cfi-order-total-value" id="grand-total">₦0.00</span>
             </div>
+            <div id="grand-total-display" style="margin-top: 0.5rem; padding: 1rem; background: linear-gradient(135deg, #16a34a, #22c55e); color: white; border-radius: 8px; text-align: center; display: none;">
+                <span style="font-size: 0.9rem;">Amount to add to debt:</span>
+                <span id="grand-total-highlight" style="font-size: 2rem; font-weight: 700; display: block;">₦0.00</span>
+            </div>
             
             <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end;">
                 <a href="<?php echo esc_url(remove_query_arg(array('debtor', 'action'))); ?>" class="cfi-btn cfi-btn-outline">Cancel</a>
@@ -490,8 +497,27 @@ $selected_debtor = $selected_debtor_id ? CFI_Debtors::get($selected_debtor_id) :
         totals.forEach(function(el) {
             grand += parseFloat(el.textContent) || 0;
         });
-        document.getElementById('grand-total').textContent = '₦' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var formatted = '₦' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('grand-total').textContent = formatted;
+        
+        // Show/hide the highlighted grand total display
+        var displayDiv = document.getElementById('grand-total-display');
+        var highlightSpan = document.getElementById('grand-total-highlight');
+        if (grand > 0) {
+            displayDiv.style.display = 'block';
+            highlightSpan.textContent = formatted;
+        } else {
+            displayDiv.style.display = 'none';
+        }
     }
+    
+    // Smart input: select all on focus
+    document.querySelectorAll('input[type="number"]').forEach(function(input) {
+        input.addEventListener('focus', function() {
+            var self = this;
+            setTimeout(function() { self.select(); }, 10);
+        });
+    });
     </script>
     
     <?php elseif ($selected_debtor && $action === 'pay') : ?>

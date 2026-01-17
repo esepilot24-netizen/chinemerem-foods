@@ -49,6 +49,7 @@ class CFI_Ajax {
             'get_orders',
             'get_order_history',
             'get_order_product_summary',
+            'get_order_details',
             
             // Stock
             'get_stock',
@@ -340,6 +341,55 @@ class CFI_Ajax {
         $summary = CFI_Orders::get_product_summary($date, $type);
         
         wp_send_json_success(array('summary' => $summary));
+    }
+    
+    /**
+     * Get order details by order ID
+     */
+    public function handle_get_order_details() {
+        // Allow GET request for this action (no nonce needed, just user login)
+        if (!is_user_logged_in()) {
+            wp_send_json_error(array('message' => __('Please login to continue', 'chinemerem-foods')));
+        }
+        
+        $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+        
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID', 'chinemerem-foods')));
+        }
+        
+        global $wpdb;
+        $orders_table = $wpdb->prefix . 'cfi_orders';
+        $items_table = $wpdb->prefix . 'cfi_order_items';
+        $products_table = $wpdb->prefix . 'cfi_products';
+        
+        // Get order details
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $orders_table WHERE id = %d",
+            $order_id
+        ));
+        
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found', 'chinemerem-foods')));
+        }
+        
+        // Get order items with product names
+        $items = $wpdb->get_results($wpdb->prepare(
+            "SELECT oi.*, p.name as product_name 
+             FROM $items_table oi 
+             LEFT JOIN $products_table p ON oi.product_id = p.id 
+             WHERE oi.order_id = %d",
+            $order_id
+        ));
+        
+        wp_send_json_success(array(
+            'order_number' => $order->order_number,
+            'order_date' => $order->order_date,
+            'order_time' => $order->order_time,
+            'customer_name' => $order->customer_name,
+            'grand_total' => $order->grand_total,
+            'items' => $items
+        ));
     }
     
     /**

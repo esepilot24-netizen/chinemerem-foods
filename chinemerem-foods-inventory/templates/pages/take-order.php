@@ -109,6 +109,9 @@ if (isset($_POST['cfi_submit_order']) && wp_verify_nonce($_POST['cfi_order_nonce
                         ),
                         array('%d', '%d', '%f', '%f', '%f', '%f')
                     );
+                    
+                    // Update stock cash_supply column for this product
+                    CFI_Stock::update_cash_supply($item['product_id'], $item['quantity'], current_time('Y-m-d'));
                 }
                 
                 // Record transfer if applicable
@@ -508,25 +511,28 @@ $products = CFI_Products::get_all();
             <h3><i class="fas fa-credit-card"></i> Payment Method</h3>
             
             <div class="payment-methods">
-                <div class="payment-method" data-method="transfer" onclick="selectPayment(this)">
+                <div class="payment-method" data-method="transfer" onclick="togglePayment(this)">
+                    <input type="checkbox" id="use_transfer" style="display: none;">
                     <i class="fas fa-credit-card"></i>
                     <span>Transfer/Card</span>
                 </div>
-                <div class="payment-method selected" data-method="cash" onclick="selectPayment(this)">
+                <div class="payment-method selected" data-method="cash" onclick="togglePayment(this)">
+                    <input type="checkbox" id="use_cash" checked style="display: none;">
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
                 </div>
             </div>
+            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;"><i class="fas fa-info-circle"></i> You can select both payment methods for split payments</p>
             
             <!-- Customer Name (Required for Transfer) -->
-            <div class="customer-name-group" id="customer-name-group">
+            <div class="customer-name-group" id="customer-name-group" style="display: none;">
                 <div class="form-group">
                     <label for="customer_name"><i class="fas fa-user"></i> Customer Name <span style="color: #dc2626;">*</span> (Required for Transfer)</label>
                     <input type="text" id="customer_name" name="customer_name" class="form-input" placeholder="Enter customer name for transfer...">
                 </div>
             </div>
             
-            <div class="bank-options" id="bank-options">
+            <div class="bank-options" id="bank-options" style="display: none;">
                 <label class="bank-option">
                     <input type="radio" name="bank_name" value="Moniepoint MFB" checked>
                     <span>Moniepoint MFB</span>
@@ -540,12 +546,15 @@ $products = CFI_Products::get_all();
             <div class="payment-amounts">
                 <div class="form-group" id="transfer-group" style="display: none;">
                     <label>Transfer Amount (₦)</label>
-                    <input type="number" id="transfer_amount" name="transfer_amount" class="form-input" value="0" min="0" step="0.01">
+                    <input type="number" id="transfer_amount" name="transfer_amount" class="form-input" value="0" min="0" step="0.01" oninput="updatePaymentBalance()">
                 </div>
                 <div class="form-group" id="cash-group">
                     <label>Cash Amount (₦)</label>
-                    <input type="number" id="cash_amount" name="cash_amount" class="form-input" value="0" min="0" step="0.01">
+                    <input type="number" id="cash_amount" name="cash_amount" class="form-input" value="0" min="0" step="0.01" oninput="updatePaymentBalance()">
                 </div>
+            </div>
+            <div id="payment-balance" style="display: none; padding: 0.75rem; background: #fef3c7; border-radius: 8px; margin-top: 0.5rem; font-size: 0.85rem; color: #92400e;">
+                <i class="fas fa-exclamation-triangle"></i> <span id="payment-balance-text"></span>
             </div>
             
             <div class="checkbox-group">
@@ -696,29 +705,91 @@ function calculateTotals() {
     document.getElementById('total-discount').textContent = '₦' + totalDisc.toLocaleString();
     document.getElementById('grand-total').textContent = '₦' + grandTotal.toLocaleString();
     
-    // Auto-fill payment amount
-    var method = document.getElementById('payment-method').value;
-    if (method === 'transfer') {
+    // Auto-fill payment amount based on selected methods
+    var useTransfer = document.getElementById('use_transfer').checked;
+    var useCash = document.getElementById('use_cash').checked;
+    
+    if (useTransfer && useCash) {
+        // Split payment - don't auto-fill, let user decide
+    } else if (useTransfer) {
         document.getElementById('transfer_amount').value = grandTotal;
         document.getElementById('cash_amount').value = 0;
-    } else {
+    } else if (useCash) {
         document.getElementById('cash_amount').value = grandTotal;
         document.getElementById('transfer_amount').value = 0;
     }
+    
+    updatePaymentBalance();
 }
 
-function selectPayment(el) {
-    document.querySelectorAll('.payment-method').forEach(function(m) { m.classList.remove('selected'); });
-    el.classList.add('selected');
+function togglePayment(el) {
+    el.classList.toggle('selected');
     var method = el.dataset.method;
-    document.getElementById('payment-method').value = method;
     
-    document.getElementById('transfer-group').style.display = (method === 'transfer') ? 'block' : 'none';
-    document.getElementById('cash-group').style.display = (method === 'cash') ? 'block' : 'none';
-    document.getElementById('bank-options').style.display = (method === 'transfer') ? 'block' : 'none';
-    document.getElementById('customer-name-group').style.display = (method === 'transfer') ? 'block' : 'none';
+    if (method === 'transfer') {
+        var checkbox = document.getElementById('use_transfer');
+        checkbox.checked = !checkbox.checked;
+        document.getElementById('transfer-group').style.display = checkbox.checked ? 'block' : 'none';
+        document.getElementById('bank-options').style.display = checkbox.checked ? 'block' : 'none';
+        document.getElementById('customer-name-group').style.display = checkbox.checked ? 'block' : 'none';
+        if (!checkbox.checked) {
+            document.getElementById('transfer_amount').value = 0;
+        }
+    } else if (method === 'cash') {
+        var checkbox = document.getElementById('use_cash');
+        checkbox.checked = !checkbox.checked;
+        document.getElementById('cash-group').style.display = checkbox.checked ? 'block' : 'none';
+        if (!checkbox.checked) {
+            document.getElementById('cash_amount').value = 0;
+        }
+    }
+    
+    // Update hidden payment_method field
+    var useTransfer = document.getElementById('use_transfer').checked;
+    var useCash = document.getElementById('use_cash').checked;
+    if (useTransfer && useCash) {
+        document.getElementById('payment-method').value = 'split';
+    } else if (useTransfer) {
+        document.getElementById('payment-method').value = 'transfer';
+    } else {
+        document.getElementById('payment-method').value = 'cash';
+    }
     
     calculateTotals();
+}
+
+function updatePaymentBalance() {
+    var grandTotal = 0;
+    var rows = document.querySelectorAll('.order-row');
+    rows.forEach(function(row) {
+        var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        var disc = parseFloat(row.querySelector('.disc-input').value) || 0;
+        var price = parseFloat(row.dataset.price) || 0;
+        grandTotal += (price * qty) - disc;
+    });
+    
+    var transferAmt = parseFloat(document.getElementById('transfer_amount').value) || 0;
+    var cashAmt = parseFloat(document.getElementById('cash_amount').value) || 0;
+    var totalPayment = transferAmt + cashAmt;
+    var diff = grandTotal - totalPayment;
+    
+    var balanceDiv = document.getElementById('payment-balance');
+    var balanceText = document.getElementById('payment-balance-text');
+    
+    if (Math.abs(diff) > 0.01 && grandTotal > 0) {
+        balanceDiv.style.display = 'block';
+        if (diff > 0) {
+            balanceText.textContent = 'Payment is ₦' + diff.toLocaleString() + ' short of grand total';
+            balanceDiv.style.background = '#fee2e2';
+            balanceDiv.style.color = '#991b1b';
+        } else {
+            balanceText.textContent = 'Payment exceeds grand total by ₦' + Math.abs(diff).toLocaleString();
+            balanceDiv.style.background = '#fef3c7';
+            balanceDiv.style.color = '#92400e';
+        }
+    } else {
+        balanceDiv.style.display = 'none';
+    }
 }
 
 // Show confirmation modal

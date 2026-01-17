@@ -85,9 +85,23 @@ $debtors = CFI_Debtors::get_all();
         .action-btn { padding: 0.25rem 0.4rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.65rem; }
         .btn-delete { background: #dc2626; color: white; }
         .btn-delete:hover { background: #b91c1c; }
+        .btn-view { background: #001943; color: white; margin-right: 0.25rem; }
+        .btn-view:hover { background: #002960; }
         .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
         .alert-success { background: #dcfce7; color: #166534; }
         .alert-error { background: #fee2e2; color: #991b1b; }
+        /* Order Details Modal */
+        .order-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+        .order-modal.active { display: flex; }
+        .order-modal-content { background: white; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        .order-modal-header { background: #001943; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .order-modal-header h3 { margin: 0; font-size: 1rem; }
+        .order-modal-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .order-modal-body { padding: 1.5rem; }
+        .order-item-list { margin: 1rem 0; }
+        .order-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; }
+        .order-item:last-child { border-bottom: none; }
+        .order-total { font-weight: 700; font-size: 1.1rem; color: #001943; padding-top: 0.5rem; margin-top: 0.5rem; border-top: 2px solid #001943; }
         @media (max-width: 768px) {
             .cfi-table, .cfi-table thead, .cfi-table tbody, .cfi-table th, .cfi-table td, .cfi-table tr { display: block; }
             .cfi-table thead { display: none; }
@@ -150,7 +164,7 @@ $debtors = CFI_Debtors::get_all();
                         <th>Amount</th>
                         <th>Before</th>
                         <th>After</th>
-                        <th>Method</th>
+                        <th>Details</th>
                         <th>Staff</th>
                         <?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?>
                     </tr>
@@ -176,7 +190,17 @@ $debtors = CFI_Debtors::get_all();
                         </td>
                         <td data-label="Before">₦<?php echo number_format((float)$record->balance_before, 2); ?></td>
                         <td data-label="After" style="font-weight: 600;">₦<?php echo number_format((float)$record->balance_after, 2); ?></td>
-                        <td data-label="Method"><?php echo esc_html($record->payment_method ?: '-'); ?></td>
+                        <td data-label="Details">
+                            <?php if ($type === 'order' && $record->order_id) : ?>
+                            <button type="button" class="action-btn btn-view" onclick="showOrderDetails(<?php echo esc_attr($record->order_id); ?>)">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <?php elseif ($type === 'payment') : ?>
+                            <span style="font-size: 0.7rem; color: #64748b;"><?php echo esc_html($record->payment_method ?: '-'); ?></span>
+                            <?php else : ?>
+                            -
+                            <?php endif; ?>
+                        </td>
                         <td data-label="Staff"><?php echo esc_html($record->staff_name ?: '-'); ?></td>
                         <?php if ($is_super_admin) : ?>
                         <td>
@@ -195,5 +219,80 @@ $debtors = CFI_Debtors::get_all();
         <?php endif; ?>
     </div>
 </main>
+
+<!-- Order Details Modal -->
+<div class="order-modal" id="order-modal">
+    <div class="order-modal-content">
+        <div class="order-modal-header">
+            <h3><i class="fas fa-receipt"></i> Order Details</h3>
+            <button type="button" class="order-modal-close" onclick="closeOrderModal()">&times;</button>
+        </div>
+        <div class="order-modal-body" id="order-modal-body">
+            <div style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #001943;"></i>
+                <p>Loading order details...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showOrderDetails(orderId) {
+    var modal = document.getElementById('order-modal');
+    var body = document.getElementById('order-modal-body');
+    modal.classList.add('active');
+    
+    // Fetch order details via AJAX
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id=' + orderId)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                var order = data.data;
+                var html = '<div>';
+                html += '<p style="margin: 0 0 0.5rem;"><strong>Order #:</strong> ' + (order.order_number || 'N/A') + '</p>';
+                html += '<p style="margin: 0 0 0.5rem;"><strong>Date:</strong> ' + (order.order_date || 'N/A') + '</p>';
+                html += '<p style="margin: 0 0 1rem;"><strong>Customer:</strong> ' + (order.customer_name || 'N/A') + '</p>';
+                
+                if (order.items && order.items.length > 0) {
+                    html += '<div class="order-item-list">';
+                    html += '<div class="order-item" style="font-weight: 600; background: #f1f5f9; padding: 0.5rem; border-radius: 4px;">';
+                    html += '<span>Item</span><span>Qty</span><span>Amount</span>';
+                    html += '</div>';
+                    order.items.forEach(function(item) {
+                        html += '<div class="order-item">';
+                        html += '<span>' + item.product_name + '</span>';
+                        html += '<span>' + item.quantity + '</span>';
+                        html += '<span>₦' + parseFloat(item.total).toLocaleString() + '</span>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+                
+                html += '<div class="order-total" style="display: flex; justify-content: space-between;">';
+                html += '<span>Total:</span><span>₦' + parseFloat(order.grand_total || 0).toLocaleString() + '</span>';
+                html += '</div>';
+                html += '</div>';
+                body.innerHTML = html;
+            } else {
+                body.innerHTML = '<div style="text-align: center; padding: 2rem; color: #991b1b;"><i class="fas fa-exclamation-circle"></i><p>Failed to load order details</p></div>';
+            }
+        })
+        .catch(function(err) {
+            body.innerHTML = '<div style="text-align: center; padding: 2rem; color: #991b1b;"><i class="fas fa-exclamation-circle"></i><p>Error loading order details</p></div>';
+        });
+}
+
+function closeOrderModal() {
+    document.getElementById('order-modal').classList.remove('active');
+}
+
+// Close modal when clicking outside
+document.getElementById('order-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeOrderModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeOrderModal();
+});
+</script>
 </body>
 </html>
