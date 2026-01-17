@@ -533,13 +533,13 @@ $products = CFI_Products::get_all();
             <div class="payment-methods">
                 <div class="payment-method selected" data-method="transfer" onclick="togglePayment(this)">
                     <input type="checkbox" id="use_transfer" checked style="display: none;">
-                    <i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block;"></i>
+                    <i class="fas fa-check-circle check-indicator" id="check-transfer" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block;"></i>
                     <i class="fas fa-credit-card"></i>
                     <span>Transfer/Card</span>
                 </div>
                 <div class="payment-method" data-method="cash" onclick="togglePayment(this)">
                     <input type="checkbox" id="use_cash" style="display: none;">
-                    <i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none;"></i>
+                    <i class="fas fa-check-circle check-indicator" id="check-cash" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none;"></i>
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
                 </div>
@@ -747,10 +747,10 @@ function calculateTotals() {
 function togglePayment(el) {
     el.classList.toggle('selected');
     var method = el.dataset.method;
-    var checkIcon = el.querySelector('.fa-check-circle');
     
     if (method === 'transfer') {
         var checkbox = document.getElementById('use_transfer');
+        var checkIcon = document.getElementById('check-transfer');
         checkbox.checked = !checkbox.checked;
         if (checkIcon) checkIcon.style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('transfer-group').style.display = checkbox.checked ? 'block' : 'none';
@@ -761,6 +761,7 @@ function togglePayment(el) {
         }
     } else if (method === 'cash') {
         var checkbox = document.getElementById('use_cash');
+        var checkIcon = document.getElementById('check-cash');
         checkbox.checked = !checkbox.checked;
         if (checkIcon) checkIcon.style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('cash-group').style.display = checkbox.checked ? 'block' : 'none';

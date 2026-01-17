@@ -253,6 +253,8 @@ class CFI_Orders {
     
     /**
      * Get daily totals
+     * IMPORTANT: Total Sales should ONLY include cash orders (order_type = 'cash'), NOT credit/debtor orders
+     * Credit orders are on credit and don't count as actual sales until paid
      */
     public static function get_daily_totals($date) {
         global $wpdb;
@@ -261,9 +263,9 @@ class CFI_Orders {
         return $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT 
-                    SUM(grand_total) as total_sales,
-                    SUM(transfer_amount) as total_transfer,
-                    SUM(cash_amount) as total_cash,
+                    SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END) as total_sales,
+                    SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END) as total_transfer,
+                    SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END) as total_cash,
                     SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END) as cash_sales,
                     SUM(CASE WHEN order_type = 'credit' THEN grand_total ELSE 0 END) as credit_sales
                 FROM $table 

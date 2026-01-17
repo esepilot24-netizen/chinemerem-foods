@@ -460,10 +460,10 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 <h4 style="color:#001943">Select Payment Method(s)</h4>
 <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"><i class="fas fa-info-circle"></i> You can select multiple methods</p>
 <div class="payment-methods">
-<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" checked style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
-<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
+<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" checked style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-transfer" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
+<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-cash" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
 <?php if ($is_admin) : ?>
-<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-home"></i><span>Home Calc</span></div>
+<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-check-circle check-indicator" id="check-pay-home" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-home"></i><span>Home Calc</span></div>
 <?php endif; ?>
 </div>
 <div class="bank-options" id="bank-opts">
@@ -489,11 +489,27 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 </form>
 <script>
 var debt=<?php echo floatval($selected_debtor->total_debt); ?>;
-function togglePay(el){el.classList.toggle('selected');var m=el.dataset.method,c=el.querySelector('input[type="checkbox"]'),chk=el.querySelector('.fa-check-circle');c.checked=el.classList.contains('selected');if(chk)chk.style.display=c.checked?'block':'none';
-if(m==='transfer'){document.getElementById('transfer-grp').style.display=c.checked?'block':'none';document.getElementById('bank-opts').style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('transfer_amount').value=0}
-else if(m==='cash'){document.getElementById('cash-grp').style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('cash_amount').value=0}
-else if(m==='home'){var hg=document.getElementById('home-grp');if(hg){hg.style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('home_amount').value=0}}
-updatePayTotal()}
+function togglePay(el){
+    el.classList.toggle('selected');
+    var m=el.dataset.method;
+    var c=el.querySelector('input[type="checkbox"]');
+    var chkId = 'check-pay-' + m;
+    var chk = document.getElementById(chkId);
+    c.checked=el.classList.contains('selected');
+    if(chk) chk.style.display=c.checked?'block':'none';
+    if(m==='transfer'){
+        document.getElementById('transfer-grp').style.display=c.checked?'block':'none';
+        document.getElementById('bank-opts').style.display=c.checked?'block':'none';
+        if(!c.checked)document.getElementById('transfer_amount').value=0;
+    } else if(m==='cash'){
+        document.getElementById('cash-grp').style.display=c.checked?'block':'none';
+        if(!c.checked)document.getElementById('cash_amount').value=0;
+    } else if(m==='home'){
+        var hg=document.getElementById('home-grp');
+        if(hg){hg.style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('home_amount').value=0}
+    }
+    updatePayTotal();
+}
 function updatePayTotal(){var t=parseFloat(document.getElementById('transfer_amount').value)||0,ca=parseFloat(document.getElementById('cash_amount').value)||0,h=document.getElementById('home_amount'),ha=h?(parseFloat(h.value)||0):0,tot=t+ca+ha;
 document.getElementById('pay-total').textContent='₦'+tot.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 var diff=debt-tot,w=document.getElementById('pay-warn');
