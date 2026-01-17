@@ -304,6 +304,7 @@ $products = CFI_Products::get_all();
             cursor: pointer;
             transition: all 0.3s;
             background: white;
+            position: relative;
         }
         .payment-method:hover { border-color: #001943; }
         .payment-method.selected { border-color: #001943; background: rgba(0,25,67,0.05); }
@@ -469,7 +470,7 @@ $products = CFI_Products::get_all();
     
     <form method="POST" id="order-form">
         <?php wp_nonce_field('cfi_take_order', 'cfi_order_nonce'); ?>
-        <input type="hidden" name="payment_method" id="payment-method" value="cash">
+        <input type="hidden" name="payment_method" id="payment-method" value="transfer">
         
         <div class="glass">
             <h3><i class="fas fa-shopping-cart"></i> Order Items</h3>
@@ -530,13 +531,15 @@ $products = CFI_Products::get_all();
             <h3><i class="fas fa-credit-card"></i> Payment Method</h3>
             
             <div class="payment-methods">
-                <div class="payment-method" data-method="transfer" onclick="togglePayment(this)">
-                    <input type="checkbox" id="use_transfer" style="display: none;">
+                <div class="payment-method selected" data-method="transfer" onclick="togglePayment(this)">
+                    <input type="checkbox" id="use_transfer" checked style="display: none;">
+                    <i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block;"></i>
                     <i class="fas fa-credit-card"></i>
                     <span>Transfer/Card</span>
                 </div>
-                <div class="payment-method selected" data-method="cash" onclick="togglePayment(this)">
-                    <input type="checkbox" id="use_cash" checked style="display: none;">
+                <div class="payment-method" data-method="cash" onclick="togglePayment(this)">
+                    <input type="checkbox" id="use_cash" style="display: none;">
+                    <i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none;"></i>
                     <i class="fas fa-money-bill-wave"></i>
                     <span>Cash</span>
                 </div>
@@ -544,14 +547,14 @@ $products = CFI_Products::get_all();
             <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;"><i class="fas fa-info-circle"></i> You can select both payment methods for split payments</p>
             
             <!-- Customer Name (Required for Transfer) -->
-            <div class="customer-name-group" id="customer-name-group" style="display: none;">
+            <div class="customer-name-group" id="customer-name-group" style="display: block;">
                 <div class="form-group">
                     <label for="customer_name"><i class="fas fa-user"></i> Customer Name <span style="color: #dc2626;">*</span> (Required for Transfer)</label>
                     <input type="text" id="customer_name" name="customer_name" class="form-input" placeholder="Enter customer name for transfer...">
                 </div>
             </div>
             
-            <div class="bank-options" id="bank-options" style="display: none;">
+            <div class="bank-options" id="bank-options" style="display: block;">
                 <label class="bank-option">
                     <input type="radio" name="bank_name" value="Moniepoint MFB" checked>
                     <span>Moniepoint MFB</span>
@@ -563,11 +566,11 @@ $products = CFI_Products::get_all();
             </div>
             
             <div class="payment-amounts">
-                <div class="form-group" id="transfer-group" style="display: none;">
+                <div class="form-group" id="transfer-group" style="display: block;">
                     <label>Transfer Amount (₦)</label>
                     <input type="number" id="transfer_amount" name="transfer_amount" class="form-input" value="0" min="0" step="0.01" oninput="updatePaymentBalance()">
                 </div>
-                <div class="form-group" id="cash-group">
+                <div class="form-group" id="cash-group" style="display: none;">
                     <label>Cash Amount (₦)</label>
                     <input type="number" id="cash_amount" name="cash_amount" class="form-input" value="0" min="0" step="0.01" oninput="updatePaymentBalance()">
                 </div>
@@ -744,10 +747,12 @@ function calculateTotals() {
 function togglePayment(el) {
     el.classList.toggle('selected');
     var method = el.dataset.method;
+    var checkIcon = el.querySelector('.fa-check-circle');
     
     if (method === 'transfer') {
         var checkbox = document.getElementById('use_transfer');
         checkbox.checked = !checkbox.checked;
+        if (checkIcon) checkIcon.style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('transfer-group').style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('bank-options').style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('customer-name-group').style.display = checkbox.checked ? 'block' : 'none';
@@ -757,6 +762,7 @@ function togglePayment(el) {
     } else if (method === 'cash') {
         var checkbox = document.getElementById('use_cash');
         checkbox.checked = !checkbox.checked;
+        if (checkIcon) checkIcon.style.display = checkbox.checked ? 'block' : 'none';
         document.getElementById('cash-group').style.display = checkbox.checked ? 'block' : 'none';
         if (!checkbox.checked) {
             document.getElementById('cash_amount').value = 0;

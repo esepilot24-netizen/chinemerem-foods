@@ -362,7 +362,7 @@ table input{width:70px;padding:0.4rem;border:1px solid #e2e8f0;border-radius:4px
 .grand-display span{display:block;font-size:0.9rem}
 .grand-display strong{font-size:2rem;font-weight:700}
 .payment-methods{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
-.payment-method{flex:1;min-width:100px;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s}
+.payment-method{flex:1;min-width:100px;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
 .payment-method.selected{border-color:#001943;background:rgba(0,25,67,0.05)}
 .payment-method i{display:block;font-size:1.5rem;color:#001943;margin-bottom:0.5rem}
 .bank-options{margin-bottom:1rem}
@@ -460,10 +460,10 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 <h4 style="color:#001943">Select Payment Method(s)</h4>
 <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem"><i class="fas fa-info-circle"></i> You can select multiple methods</p>
 <div class="payment-methods">
-<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" checked style="display:none"><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
-<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
+<div class="payment-method selected" data-method="transfer" onclick="togglePay(this)"><input type="checkbox" name="use_transfer" id="use_transfer" checked style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:block"></i><i class="fas fa-credit-card"></i><span>Transfer/Card</span></div>
+<div class="payment-method" data-method="cash" onclick="togglePay(this)"><input type="checkbox" name="use_cash" id="use_cash" style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
 <?php if ($is_admin) : ?>
-<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-home"></i><span>Home Calc</span></div>
+<div class="payment-method" data-method="home" onclick="togglePay(this)"><input type="checkbox" name="use_home" id="use_home" style="display:none"><i class="fas fa-check-circle" style="position:absolute;top:5px;right:5px;font-size:1rem;color:#22c55e;display:none"></i><i class="fas fa-home"></i><span>Home Calc</span></div>
 <?php endif; ?>
 </div>
 <div class="bank-options" id="bank-opts">
@@ -489,7 +489,7 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 </form>
 <script>
 var debt=<?php echo floatval($selected_debtor->total_debt); ?>;
-function togglePay(el){el.classList.toggle('selected');var m=el.dataset.method,c=el.querySelector('input[type="checkbox"]');c.checked=el.classList.contains('selected');
+function togglePay(el){el.classList.toggle('selected');var m=el.dataset.method,c=el.querySelector('input[type="checkbox"]'),chk=el.querySelector('.fa-check-circle');c.checked=el.classList.contains('selected');if(chk)chk.style.display=c.checked?'block':'none';
 if(m==='transfer'){document.getElementById('transfer-grp').style.display=c.checked?'block':'none';document.getElementById('bank-opts').style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('transfer_amount').value=0}
 else if(m==='cash'){document.getElementById('cash-grp').style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('cash_amount').value=0}
 else if(m==='home'){var hg=document.getElementById('home-grp');if(hg){hg.style.display=c.checked?'block':'none';if(!c.checked)document.getElementById('home_amount').value=0}}
