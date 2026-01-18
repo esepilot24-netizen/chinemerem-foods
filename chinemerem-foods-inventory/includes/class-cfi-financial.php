@@ -107,44 +107,49 @@ class CFI_Financial {
         }
         
         // Get order totals - ONLY cash orders, NOT credit/debtor orders
-        $order_data = $wpdb->get_row($wpdb->prepare(
-            "SELECT SQL_NO_CACHE 
-                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END), 0) as total_sales,
-                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END), 0) as total_transfer,
-                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END), 0) as total_cash
-            FROM $table_orders 
-            WHERE order_date = %s AND status = 'completed'",
+        // Using separate get_var calls to avoid null object issues
+        $total_sales = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(grand_total), 0) FROM $table_orders 
+            WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
             $date
-        ));
+        )) ?: 0);
         
-        $total_sales = floatval($order_data->total_sales ?? 0);
-        $transfer_from_orders = floatval($order_data->total_transfer ?? 0);
-        $cash_sales = floatval($order_data->total_cash ?? 0);
+        $transfer_from_orders = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_orders 
+            WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
+            $date
+        )) ?: 0);
+        
+        $cash_sales = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_orders 
+            WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
+            $date
+        )) ?: 0);
         
         // Get cash out totals
         $cashout_total = floatval($wpdb->get_var($wpdb->prepare(
             "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_cashout WHERE cashout_date = %s",
             $date
-        )));
+        )) ?: 0);
         
         // Get debtor payments
-        $debtor_data = $wpdb->get_row($wpdb->prepare(
-            "SELECT SQL_NO_CACHE 
-                COALESCE(SUM(cash_amount), 0) as cash,
-                COALESCE(SUM(transfer_amount), 0) as transfer
-            FROM $table_transactions 
+        $debtors_cash = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_transactions 
             WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
             $date
-        ));
+        )) ?: 0);
         
-        $debtors_cash = floatval($debtor_data->cash ?? 0);
-        $debtors_transfer = floatval($debtor_data->transfer ?? 0);
+        $debtors_transfer = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_transactions 
+            WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
+            $date
+        )) ?: 0);
         
         // Get expenses
         $expenses = floatval($wpdb->get_var($wpdb->prepare(
             "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_expenses WHERE expense_date = %s",
             $date
-        )));
+        )) ?: 0);
         
         // Get current record with SQL_NO_CACHE for old_cash and cash_to_bank (manual entries)
         $current = $wpdb->get_row(

@@ -91,45 +91,50 @@ if (!$today_exists) {
 // This ensures we ALWAYS show correct values
 // ========================================
 
-// 1. Get order totals (ONLY cash orders, NOT credit/debtor orders)
-$order_data = $wpdb->get_row($wpdb->prepare(
-    "SELECT SQL_NO_CACHE 
-        COALESCE(SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END), 0) as total_sales,
-        COALESCE(SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END), 0) as transfer_from_orders,
-        COALESCE(SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END), 0) as cash_sales
-    FROM $table_orders 
-    WHERE order_date = %s AND status = 'completed'",
+// 1. Get order totals (ONLY cash orders, NOT credit/debtor orders) 
+// Using get_var for each to avoid null object issues
+$total_sales = floatval($wpdb->get_var($wpdb->prepare(
+    "SELECT SQL_NO_CACHE COALESCE(SUM(grand_total), 0) FROM $table_orders 
+    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
     $today
-));
+)) ?: 0);
 
-$total_sales = floatval($order_data->total_sales ?? 0);
-$transfer_from_orders = floatval($order_data->transfer_from_orders ?? 0);
-$cash_sales = floatval($order_data->cash_sales ?? 0);
+$transfer_from_orders = floatval($wpdb->get_var($wpdb->prepare(
+    "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_orders 
+    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
+    $today
+)) ?: 0);
+
+$cash_sales = floatval($wpdb->get_var($wpdb->prepare(
+    "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_orders 
+    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
+    $today
+)) ?: 0);
 
 // 2. Get cash out total
 $transfer_from_cashout = floatval($wpdb->get_var($wpdb->prepare(
     "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_cashout WHERE cashout_date = %s",
     $today
-)));
+)) ?: 0);
 
 // 3. Get expenses total
 $expenses = floatval($wpdb->get_var($wpdb->prepare(
     "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_expenses WHERE expense_date = %s",
     $today
-)));
+)) ?: 0);
 
-// 4. Get debtor payment totals - Fix query to handle different payment methods correctly
-$debtor_data = $wpdb->get_row($wpdb->prepare(
-    "SELECT SQL_NO_CACHE 
-        COALESCE(SUM(cash_amount), 0) as cash,
-        COALESCE(SUM(transfer_amount), 0) as transfer
-    FROM $table_transactions 
+// 4. Get debtor payment totals
+$debtors_cash = floatval($wpdb->get_var($wpdb->prepare(
+    "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_transactions 
     WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
     $today
-));
+)) ?: 0);
 
-$debtors_cash = floatval($debtor_data->cash ?? 0);
-$transfer_from_debtors = floatval($debtor_data->transfer ?? 0);
+$transfer_from_debtors = floatval($wpdb->get_var($wpdb->prepare(
+    "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_transactions 
+    WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
+    $today
+)) ?: 0);
 
 // 5. Get old_cash and cash_to_bank from saved record (these are manual/persistent entries)
 $saved_record = $wpdb->get_row($wpdb->prepare(
@@ -781,26 +786,12 @@ $page_load_id = time() . '_' . mt_rand(100000, 999999);
     // Initial calculation
     calculateCashLeft();
     
-    // CRITICAL: Handle browser back/forward cache (bfcache)
-    // The PHP redirect with ?t= should handle most cases, but this is a backup
+    // Handle browser back/forward cache (bfcache) - reload if restored from cache
     window.addEventListener('pageshow', function(event) {
         if (event.persisted) {
-            // Page was restored from bfcache - force hard reload
-            console.log('CFI: Page from bfcache, forcing reload');
-            window.location.reload(true);
+            // Page was restored from bfcache - force reload with timestamp
+            window.location.href = window.location.pathname + '?t=' + Date.now();
         }
-    });
-    
-    // Also handle focus - when user returns to tab, refresh if data might be stale
-    var lastFocusTime = Date.now();
-    window.addEventListener('focus', function() {
-        var now = Date.now();
-        // If more than 10 seconds since last focus, data might be stale
-        if (now - lastFocusTime > 10000) {
-            console.log('CFI: Tab focused after inactivity, reloading');
-            window.location.href = window.location.pathname + '?t=' + now;
-        }
-        lastFocusTime = now;
     });
 })();
 </script>
