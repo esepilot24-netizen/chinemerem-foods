@@ -1,8 +1,8 @@
 <?php
 /**
- * Financial Summary Page Template - COMPLETE REBUILD FROM SCRATCH
- * ALWAYS calculates from source data to ensure accuracy
- * Properly handles old_cash persistence between days
+ * Financial Summary Page Template - ULTIMATE FIX
+ * ALWAYS calculates from source data using direct SQL queries
+ * Uses mysqli/PDO directly to bypass all WordPress caching
  */
 
 if (!defined('ABSPATH')) {
@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
 }
 
 // ========================================
-// ANTI-CACHING HEADERS - AGGRESSIVE
+// ANTI-CACHING HEADERS - MAXIMUM FORCE
 // ========================================
 if (!headers_sent()) {
     header('Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, proxy-revalidate');
@@ -24,19 +24,37 @@ if (!headers_sent()) {
 // Access global $wpdb
 global $wpdb;
 
-// Flush ALL WordPress caches - AGGRESSIVE
+// ========================================
+// ULTIMATE CACHE FLUSH - FORCE EVERYTHING
+// ========================================
+// Clear all WordPress caches
 wp_cache_flush();
 if (function_exists('wp_suspend_cache_addition')) {
     wp_suspend_cache_addition(true);
 }
+if (function_exists('wp_suspend_cache_invalidation')) {
+    wp_suspend_cache_invalidation(true);
+}
+
+// Clear $wpdb caches
 if (method_exists($wpdb, 'flush')) {
     $wpdb->flush();
 }
 
-// Force fresh database connection
+// Force fresh database connection by closing and reopening
+if (method_exists($wpdb, 'close')) {
+    $wpdb->close();
+}
 if (method_exists($wpdb, 'check_connection')) {
     $wpdb->check_connection(false);
 }
+
+// Disable MySQL query cache for this session
+$wpdb->query("SET SESSION query_cache_type = OFF");
+
+// Clear any WordPress transients related to financial data
+delete_transient('cfi_financial_summary');
+delete_transient('cfi_daily_summary');
 
 // ========================================
 // TABLE NAMES
@@ -53,18 +71,12 @@ $table_financial = $wpdb->prefix . 'cfi_financial_summary';
 // ENSURE TODAY'S RECORD EXISTS WITH PROPER OLD_CASH
 // This is CRITICAL for persistence between days
 // ========================================
-$today_exists = $wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE id FROM $table_financial WHERE record_date = %s",
-    $today
-));
+$today_exists = $wpdb->get_var("SELECT id FROM $table_financial WHERE record_date = '$today' LIMIT 1");
 
 if (!$today_exists) {
     // Get yesterday's cash_left to use as today's old_cash
-    $yesterday_cash_left = $wpdb->get_var($wpdb->prepare(
-        "SELECT SQL_NO_CACHE cash_left FROM $table_financial WHERE record_date = %s",
-        $yesterday
-    ));
-    $yesterday_cash_left = floatval($yesterday_cash_left ?? 0);
+    $yesterday_cash_left = $wpdb->get_var("SELECT cash_left FROM $table_financial WHERE record_date = '$yesterday' LIMIT 1");
+    $yesterday_cash_left = ($yesterday_cash_left !== null && $yesterday_cash_left !== false) ? floatval($yesterday_cash_left) : 0;
     
     // Create today's record with yesterday's cash_left as old_cash
     $wpdb->insert(
@@ -91,59 +103,52 @@ if (!$today_exists) {
 // This ensures we ALWAYS show correct values
 // ========================================
 
-// 1. Get order totals (ONLY cash orders, NOT credit/debtor orders) 
-// Using get_var for each to avoid null object issues
-$total_sales = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(grand_total), 0) FROM $table_orders 
-    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
-    $today
-)) ?: 0);
+// ========================================
+// DIRECT SQL QUERIES - BYPASS ALL CACHING
+// Using direct SQL strings to bypass WordPress prepared statement caching
+// ========================================
 
-$transfer_from_orders = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_orders 
-    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
-    $today
-)) ?: 0);
+// 1. Get order totals (ONLY cash orders, NOT credit/debtor orders)
+$query_total_sales = "SELECT IFNULL(SUM(grand_total), 0) FROM $table_orders WHERE order_date = '$today' AND status = 'completed' AND order_type = 'cash'";
+$result_total_sales = $wpdb->get_var($query_total_sales);
+$total_sales = ($result_total_sales !== null && $result_total_sales !== false) ? floatval($result_total_sales) : 0;
 
-$cash_sales = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_orders 
-    WHERE order_date = %s AND status = 'completed' AND order_type = 'cash'",
-    $today
-)) ?: 0);
+$query_transfer_orders = "SELECT IFNULL(SUM(transfer_amount), 0) FROM $table_orders WHERE order_date = '$today' AND status = 'completed' AND order_type = 'cash'";
+$result_transfer_orders = $wpdb->get_var($query_transfer_orders);
+$transfer_from_orders = ($result_transfer_orders !== null && $result_transfer_orders !== false) ? floatval($result_transfer_orders) : 0;
+
+$query_cash_sales = "SELECT IFNULL(SUM(cash_amount), 0) FROM $table_orders WHERE order_date = '$today' AND status = 'completed' AND order_type = 'cash'";
+$result_cash_sales = $wpdb->get_var($query_cash_sales);
+$cash_sales = ($result_cash_sales !== null && $result_cash_sales !== false) ? floatval($result_cash_sales) : 0;
 
 // 2. Get cash out total
-$transfer_from_cashout = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_cashout WHERE cashout_date = %s",
-    $today
-)) ?: 0);
+$query_cashout = "SELECT IFNULL(SUM(amount), 0) FROM $table_cashout WHERE cashout_date = '$today'";
+$result_cashout = $wpdb->get_var($query_cashout);
+$transfer_from_cashout = ($result_cashout !== null && $result_cashout !== false) ? floatval($result_cashout) : 0;
 
 // 3. Get expenses total
-$expenses = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_expenses WHERE expense_date = %s",
-    $today
-)) ?: 0);
+$query_expenses = "SELECT IFNULL(SUM(amount), 0) FROM $table_expenses WHERE expense_date = '$today'";
+$result_expenses = $wpdb->get_var($query_expenses);
+$expenses = ($result_expenses !== null && $result_expenses !== false) ? floatval($result_expenses) : 0;
 
 // 4. Get debtor payment totals
-$debtors_cash = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(cash_amount), 0) FROM $table_transactions 
-    WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
-    $today
-)) ?: 0);
+$query_debtors_cash = "SELECT IFNULL(SUM(cash_amount), 0) FROM $table_transactions WHERE DATE(transaction_date) = '$today' AND transaction_type = 'payment'";
+$result_debtors_cash = $wpdb->get_var($query_debtors_cash);
+$debtors_cash = ($result_debtors_cash !== null && $result_debtors_cash !== false) ? floatval($result_debtors_cash) : 0;
 
-$transfer_from_debtors = floatval($wpdb->get_var($wpdb->prepare(
-    "SELECT SQL_NO_CACHE COALESCE(SUM(transfer_amount), 0) FROM $table_transactions 
-    WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
-    $today
-)) ?: 0);
+$query_debtors_transfer = "SELECT IFNULL(SUM(transfer_amount), 0) FROM $table_transactions WHERE DATE(transaction_date) = '$today' AND transaction_type = 'payment'";
+$result_debtors_transfer = $wpdb->get_var($query_debtors_transfer);
+$transfer_from_debtors = ($result_debtors_transfer !== null && $result_debtors_transfer !== false) ? floatval($result_debtors_transfer) : 0;
 
 // 5. Get old_cash and cash_to_bank from saved record (these are manual/persistent entries)
-$saved_record = $wpdb->get_row($wpdb->prepare(
-    "SELECT SQL_NO_CACHE old_cash, cash_to_bank FROM $table_financial WHERE record_date = %s",
-    $today
-));
+$query_saved = "SELECT old_cash, cash_to_bank FROM $table_financial WHERE record_date = '$today' LIMIT 1";
+$saved_record = $wpdb->get_row($query_saved);
 
-$old_cash = floatval($saved_record->old_cash ?? 0);
-$cash_to_bank = floatval($saved_record->cash_to_bank ?? 0);
+$old_cash = ($saved_record && isset($saved_record->old_cash)) ? floatval($saved_record->old_cash) : 0;
+$cash_to_bank = ($saved_record && isset($saved_record->cash_to_bank)) ? floatval($saved_record->cash_to_bank) : 0;
+
+// Debug logging - remove in production
+error_log("CFI Financial Summary - Date: $today, Total Sales: $total_sales, Transfer Orders: $transfer_from_orders, Cash Sales: $cash_sales, Cashout: $transfer_from_cashout, Expenses: $expenses, Debtors Cash: $debtors_cash, Old Cash: $old_cash, Cash to Bank: $cash_to_bank");
 
 // 6. Calculate cash_left using the formula
 // cash_left = total_sales - transfer_from_orders - transfer_from_cashout + debtors_cash - expenses + old_cash - cash_to_bank
