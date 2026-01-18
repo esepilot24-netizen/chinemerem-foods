@@ -13,14 +13,21 @@ class CFI_Financial {
     
     /**
      * Initialize financial record for a date
+     * CRITICAL: Properly handles old_cash from previous day
      */
     public static function initialize_date($date) {
         global $wpdb;
         $table = CFI_Database::get_table('financial_summary');
         
-        // Check if already exists
+        // Flush caches to ensure fresh data
+        wp_cache_flush();
+        if (method_exists($wpdb, 'flush')) {
+            $wpdb->flush();
+        }
+        
+        // Check if already exists using SQL_NO_CACHE
         $existing = $wpdb->get_var(
-            $wpdb->prepare("SELECT id FROM $table WHERE record_date = %s", $date)
+            $wpdb->prepare("SELECT SQL_NO_CACHE id FROM $table WHERE record_date = %s", $date)
         );
         
         if ($existing) {
@@ -30,8 +37,9 @@ class CFI_Financial {
         // Get previous day's cash_left as today's old_cash
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
         $old_cash = $wpdb->get_var(
-            $wpdb->prepare("SELECT cash_left FROM $table WHERE record_date = %s", $yesterday)
+            $wpdb->prepare("SELECT SQL_NO_CACHE cash_left FROM $table WHERE record_date = %s", $yesterday)
         );
+        $old_cash = floatval($old_cash ?: 0);
         
         $wpdb->insert(
             $table,
@@ -43,10 +51,10 @@ class CFI_Financial {
                 'transfer_from_debtors' => 0,
                 'debtors_cash' => 0,
                 'expenses' => 0,
-                'old_cash' => $old_cash ?: 0,
+                'old_cash' => $old_cash,
                 'cash_to_bank' => 0,
                 'cash_sales' => 0,
-                'cash_left' => $old_cash ?: 0,
+                'cash_left' => $old_cash,
             ),
             array('%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f')
         );
@@ -56,6 +64,7 @@ class CFI_Financial {
     
     /**
      * Get financial summary for a date
+     * ALWAYS recalculates from source data for accuracy
      */
     public static function get_summary($date) {
         global $wpdb;
@@ -63,8 +72,11 @@ class CFI_Financial {
         
         // Flush all caches to ensure fresh data
         wp_cache_flush();
-        $wpdb->flush();
+        if (method_exists($wpdb, 'flush')) {
+            $wpdb->flush();
+        }
         
+        // Initialize the date (creates record with proper old_cash if doesn't exist)
         self::initialize_date($date);
         
         // Recalculate values from source data
@@ -78,39 +90,73 @@ class CFI_Financial {
     
     /**
      * Recalculate financial summary from source data
+     * This is the CORE function that calculates all values from source tables
      */
     public static function recalculate($date) {
         global $wpdb;
         $table = CFI_Database::get_table('financial_summary');
+        $table_orders = CFI_Database::get_table('orders');
+        $table_cashout = CFI_Database::get_table('cashout');
+        $table_expenses = CFI_Database::get_table('expenses');
+        $table_transactions = CFI_Database::get_table('debtor_transactions');
         
         // Flush caches to ensure fresh data from source tables
         wp_cache_flush();
-        $wpdb->flush();
+        if (method_exists($wpdb, 'flush')) {
+            $wpdb->flush();
+        }
         
-        // Get order totals - using fresh data from orders table
-        $order_totals = CFI_Orders::get_daily_totals($date);
-        $total_sales = $order_totals->total_sales ?: 0;
-        $transfer_from_orders = $order_totals->total_transfer ?: 0;
-        $cash_sales = $order_totals->total_cash ?: 0;
+        // Get order totals - ONLY cash orders, NOT credit/debtor orders
+        $order_data = $wpdb->get_row($wpdb->prepare(
+            "SELECT SQL_NO_CACHE 
+                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN grand_total ELSE 0 END), 0) as total_sales,
+                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN transfer_amount ELSE 0 END), 0) as total_transfer,
+                COALESCE(SUM(CASE WHEN order_type = 'cash' THEN cash_amount ELSE 0 END), 0) as total_cash
+            FROM $table_orders 
+            WHERE order_date = %s AND status = 'completed'",
+            $date
+        ));
+        
+        $total_sales = floatval($order_data->total_sales ?? 0);
+        $transfer_from_orders = floatval($order_data->total_transfer ?? 0);
+        $cash_sales = floatval($order_data->total_cash ?? 0);
         
         // Get cash out totals
-        $cashout_total = self::get_cashout_total($date);
+        $cashout_total = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_cashout WHERE cashout_date = %s",
+            $date
+        )));
         
         // Get debtor payments
-        $debtor_totals = self::get_debtor_totals($date);
+        $debtor_data = $wpdb->get_row($wpdb->prepare(
+            "SELECT SQL_NO_CACHE 
+                COALESCE(SUM(cash_amount), 0) as cash,
+                COALESCE(SUM(transfer_amount), 0) as transfer
+            FROM $table_transactions 
+            WHERE DATE(transaction_date) = %s AND transaction_type = 'payment'",
+            $date
+        ));
+        
+        $debtors_cash = floatval($debtor_data->cash ?? 0);
+        $debtors_transfer = floatval($debtor_data->transfer ?? 0);
         
         // Get expenses
-        $expenses = CFI_Expenses::get_total($date);
+        $expenses = floatval($wpdb->get_var($wpdb->prepare(
+            "SELECT SQL_NO_CACHE COALESCE(SUM(amount), 0) FROM $table_expenses WHERE expense_date = %s",
+            $date
+        )));
         
-        // Get current record with SQL_NO_CACHE
+        // Get current record with SQL_NO_CACHE for old_cash and cash_to_bank (manual entries)
         $current = $wpdb->get_row(
             $wpdb->prepare("SELECT SQL_NO_CACHE * FROM $table WHERE record_date = %s", $date)
         );
         
-        // Calculate cash left
+        $old_cash = floatval($current->old_cash ?? 0);
+        $cash_to_bank = floatval($current->cash_to_bank ?? 0);
+        
+        // Calculate cash left using the formula
         // cash_left = total_sales - transfer_from_orders - transfer_from_cashout + debtors_cash - expenses + old_cash - cash_to_bank
-        $cash_left = $total_sales - $transfer_from_orders - $cashout_total + 
-                     $debtor_totals['cash'] - $expenses + $current->old_cash - $current->cash_to_bank;
+        $cash_left = $total_sales - $transfer_from_orders - $cashout_total + $debtors_cash - $expenses + $old_cash - $cash_to_bank;
         
         $wpdb->update(
             $table,
@@ -118,8 +164,8 @@ class CFI_Financial {
                 'total_sales' => $total_sales,
                 'transfer_from_orders' => $transfer_from_orders,
                 'transfer_from_cashout' => $cashout_total,
-                'transfer_from_debtors' => $debtor_totals['transfer'],
-                'debtors_cash' => $debtor_totals['cash'],
+                'transfer_from_debtors' => $debtors_transfer,
+                'debtors_cash' => $debtors_cash,
                 'expenses' => $expenses,
                 'cash_sales' => $cash_sales,
                 'cash_left' => $cash_left,
